@@ -1,6 +1,6 @@
 # Blogs
 
-> [个人博客](https://blog.csdn.net/m0_37965018)
+> [个人博客](https://www.cnblogs.com/my_captain)
 
 
-> [GitHub](https://github.com/Corefo/ "github")
+> [GitHub](https://github.com/cnhkzyy)
