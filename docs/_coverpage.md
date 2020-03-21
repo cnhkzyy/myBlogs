@@ -1,9 +1,9 @@
 
-# Myblogs
+# Blogs
 
 
-> 我要开始装逼了
+> 怕什么真理无穷，进一寸有一寸的欢喜
 
 
-[CSDN](https://blog.csdn.net/m0_37965018)
-[滚动鼠标](#introduction)
+[博客园](https://www.cnblogs.com/my_captain)
+[Github](https://github.com/cnhkzyy)
