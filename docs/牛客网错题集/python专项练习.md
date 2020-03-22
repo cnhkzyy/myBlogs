@@ -147,12 +147,13 @@ b[np.arange(b.shape[0]), c] = 1
 print b
 ```
 
-A. Hello World!  
+A. Hello World!    
 B. 一个 shape = (5,10) 的随机整数矩阵  
 C. 一个 shape = (5,10) 的 one-hot 矩阵  
 D. 一个 shape = (10,5) 的 one-hot 矩阵  
 
 **答案**: D
+
 **分析**
 
 ```python
@@ -225,3 +226,27 @@ b[np.arange(10), c]=1表示np.arange(10)生成的数组中，所有c对应的位
 ```
 
 因此是一个10行，5列的矩阵
+
+
+5.下面的程序根据用户输入的三个边长a, b, c来计算三角形面积，请指出程序中的错误：（设用户输入合法面积公式无误）（） 
+```python
+import math
+a, b, c = raw_input("Enter a, b, c: ")
+s = a + b + c
+s = s / 2.0
+area = sqrt(s * (s - a) * (s - b) * (s - c))
+print "The area is: ", area
+```
+
+A. 第一行  
+B. 第二行  
+C. 第五行  
+D. 第六行  
+
+**答案**: B和C
+
+**分析**
+
+第二行，在python3中，input输入的都是字符串，所以a, b, c = "12 13 14"，会报错ValueError: too many values to unpack (expected 3)。因为正常情况下，a = 1, b = 2, c = " "，剩下的值没有变量接收  
+第五行，应该使用math.sqrt，否则会报NameError: name 'sqrt' is not defined  
+
