@@ -110,4 +110,27 @@ for i in range(2, int(3) + 1):
 ```
 
 0-9之间有4个为True的数，分别是：2, 3, 5, 7，这些都是质数，所以sum = 4   
-至于0-10000000000之间有多少个质数，只能靠蒙了
+至于0-10000000000之间有多少个质数，只能靠蒙了  
+
+3.下列代码运行结果是（）
+```python
+a = 'a'
+print a > 'b' or 'c
+```
+
+A. a  
+B. b  
+C. c  
+D. d  
+E. True  
+F. False   
+
+**答案**: C
+
+**分析**
+
+| 运算符 | 逻辑表达式 | 描述 | 实例 |
+| -- | -- | -- | --|
+| and | x and y | 布尔与，如果x为False，x and y 返回Flase，否则它返回y的计算值 | x为10，y为20，(x and y)返回20 |
+| or | x or y | 布尔或，如果x为True，它返回x的值，否则返回y的计算值 | x为10，y为20，(x or y)返回10 |
+| not | not x | 布尔非，如果x为True，返回False，如果x为False，返回True | not(a and b)返回False |
