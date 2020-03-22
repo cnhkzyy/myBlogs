@@ -6,4 +6,6 @@
 
 [博客园](https://www.cnblogs.com/my_captain)
 [Github](https://github.com/cnhkzyy)
+[开始阅读](README.md)
+
 
