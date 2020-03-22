@@ -1,4 +1,4 @@
-### 2020年3月22日
+## 2020年3月22日
 1.如下程序会打印多少个数（）
 
 ```python
@@ -133,7 +133,7 @@ F. False
 | -- | -- | -- | --|
 | and | x and y | 布尔与，如果x为False，x and y 返回Flase，否则它返回y的计算值 | x为10，y为20，(x and y)返回20 |
 | or | x or y | 布尔或，如果x为True，它返回x的值，否则返回y的计算值 | x为10，y为20，(x or y)返回10 |
-| not | not x | 布尔非，如果x为True，返回False，如果x为False，返回True | not(a and b)返回False |    
+| not | not x | 布尔非，如果x为True，返回False，如果x为False，返回True | not(a and b)返回False |
 
 
 4.以下函数输出结果为（）
