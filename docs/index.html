@@ -8,19 +8,23 @@
   <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
   <link rel="stylesheet" href="//unpkg.com/docsify/lib/themes/vue.css">
   <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk/dist/gitalk.css">
+  <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/gitalk.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/gitalk/dist/gitalk.min.js"></script>
+  <script>
+	const gitalk = new Gitalk({
+		clientID: 'cd7b8271912b67d7fb63',
+		clientSecret: '3a3cff124fc888229414ce8aca4920d55cc8e0f0',
+		repo: 'myBlogs',
+		owner: 'cnhkzyy',
+		admin: ['cnhkzyy'],
+		// facebook-like distraction free mode
+		distractionFreeMode: false
+	})
+  </script>
 </head>
 <body>
   <div id="app"></div>
   <script>
-	const gitalk = new Gitalk({
-    clientID: 'cd7b8271912b67d7fb63',
-    clientSecret: '3a3cff124fc888229414ce8aca4920d55cc8e0f0',
-    repo: 'myBlogs',
-    owner: 'cnhkzyy',
-    admin: ['cnhkzyy'],
-    // facebook-like distraction free mode
-    distractionFreeMode: false
-	})
     window.$docsify = {
       name: '',
       repo: 'https://github.com/cnhkzyy/myBlogs',
@@ -41,7 +45,5 @@
   <script src="//unpkg.com/docsify/lib/docsify.min.js"></script>
   <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/search.min.js"></script>
   <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/emoji.min.js"></script>
-  <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/gitalk.min.js"></script>
-  <script src="//cdn.jsdelivr.net/npm/gitalk/dist/gitalk.min.js"></script>
 </body>
 </html>
