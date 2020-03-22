@@ -35,18 +35,22 @@
   <script src="//unpkg.com/docsify/lib/plugins/gitalk.min.js"></script>
   <script src="//unpkg.com/gitalk/dist/gitalk.min.js"></script>
   <script>
-	  var gitalkConfig = {
+	  var gitalk = new Gitalk({
 			clientID: 'cd7b8271912b67d7fb63',
 			clientSecret: '3a3cff124fc888229414ce8aca4920d55cc8e0f0',
 			repo: 'myBlogs',
 			owner: 'cnhkzyy',
 			admin: ['cnhkzyy'],
 			distractionFreeMode: true,
-		};
+			title: location.hash.match(/#(.*?)([?]|$)/)[1],
+			id: location.hash.match(/#(.*?)([?]|$)/)[1],
+		})
+		
+	  window.onhashchange = function(event){
+			if(event.newURL.split('?')[0] !== event.oldURL .split('?')[0]) {
+				location.reload()
+      }
+	  }
   </script>
-  <script src="//unpkg.com/docsify-pagination/dist/docsify-pagination.min.js"></script>
-  <script src="//unpkg.com/docsify/lib/plugins/zoom-image.js"></script>
-  <script src="//unpkg.com/prismjs/components/prism-bash.js"></script>
-  <script src="//unpkg.com/prismjs/components/prism-java.min.js"></script>
 </body>
 </html>
