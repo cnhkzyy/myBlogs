@@ -1,4 +1,5 @@
-[toc]
+[TOC]
+
 
 
 
@@ -52,9 +53,10 @@ test_login({"mobilePhone": "10086123456", "pwd": "123"})
 2.Excel比较直观，操作方便  
 
 使用Excel的设计形式如下：  
-| id | api_name | 用例说明 | url       | method | request_data | expect_data |
+| id | api_name | 用例说明 | url | method | request_data | expect_data |
 | -- | -- | -- | -- | -- | --| -- |
-| register_01 | register | 注册成功—无昵称 | url地址 | get | {"mobilephone":"13723456712", "pwd":"test123"} | {"status":1,"code":"10001","data":null,"msg":"注册成功"} |
+| register_01 | register | 注册成功—无昵称 | url地址 | get |     {"mobilephone":"13723456712", "pwd":"test123"} |   {"status":1,"code":"10001","data":null,"msg":"注册成功"} |
+
 
 
 
