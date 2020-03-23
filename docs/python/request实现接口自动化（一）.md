@@ -343,7 +343,7 @@ if __name__ == '__main__':
 
 debug一下，就发现问题之所在了，  data=kwargs中的kwargs = {'request_data': {'mobilephone': '13623456962', 'pwd': 'test123'}}，而将data = kwargs传递给 requests.request的\*\*kwargs，会重新组合为data = {'request_data': {'mobilephone': '13623456962', 'pwd': 'test123'}}，也就是```请求参数多了一个request_data的key```，所以接口就找不到手机号了  
 
-![image-20200323124704961](C:\Users\beck\AppData\Roaming\Typora\typora-user-images\image-20200323124704961.png)   
+![image-20200323124704961](../../img/image-20200323124704961.png)   
 
 这相当于 key = value传递，我们在此基础上使得 key = { key: value }，唯一的办法是少定义一个 key = value，那么就要把请求方法中控制get还是post的判断去掉，让params=request_data或者data=request_data再传递参数时判断即可。这样整体的代码也比较简洁了  
 
