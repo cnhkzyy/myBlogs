@@ -1,7 +1,9 @@
 ## 快速导航
-- [一种冗余的设计](#一种冗余的设计）)
-- [存放测试数据](#存放测试数据)
-- [读取测试数据的两种方式](#读取测试数据的两种方式)
+- [```一种冗余的设计```](#一种冗余的设计）)
+- [```存放测试数据```](#存放测试数据)
+- [```读取测试数据的两种方式```](#读取测试数据的两种方式)
+- [```分层设计思想```](#分层设计思想])
+- [```封装请求方法的两种方式```](#封装请求方法的两种方式)
 
 
 
@@ -97,7 +99,7 @@ for case_data in all_case_data:
 	...
 ```
 
-定义好了数据的存储格式，即```列表[字典]```的形式，下一步就要读取Excel了，我先写出第一种的方式，看看有什么优缺点   
+定义好了数据的存储格式，即```列表[字典]```的形式，下一步就要读取Excel了，我先写出第一种方式，看看有什么优缺点   
 ```python
 from openpyxl import load_workbook
 
@@ -142,7 +144,7 @@ if __name__ == '__main__':
  case_data["expect_data"] = self.sh.cell(row, 7).value
 ```
 把列号写死，万一要在id和url之间加一列，url后面的列号都得变了，这样维护起来比较麻烦。刚好之前学过zip可以把两个可迭代对象打包成一个对象，然后使用dict()将其变成字典，再追加到列表中。```第一个对象是第一行的列表组成的列表，第二个对象是每一行的单元格的值组成的列表（这里是全部读取）```  
-有了这样的思路，实现起来也比较简单：  
+有了这样的思路，第二种方式实现起来也比较简单：  
 
 
 ```python
@@ -181,3 +183,197 @@ D:\program\Python37\python.exe E:/python_workshop/python_API/Common/DoExcel.py
 
 Process finished with exit code 0
 ```
+
+这种方式有效的避免了第一种方式的缺点，可以任意向Excel中增加列、删除列，读取的将是全部的测试数据   
+
+
+## 分层设计思想
+
+我们定义了Excel，读取Excel的类，后面还要定义接口请求类、日志类等等，如果将这些东西全部放在一个目录下，看起来杂乱无章。实现数据和代码分离的功能就是为了分层，所以我们的目录最好体现分层思想。新的目录结构设计：
+```python
+	Common(公共目录)
+		--> 处理Excel.py
+		--> 封装日志.py
+		--> 发送请求.py
+		--> 读取配置.py
+		...
+	Conf(配置目录)
+		--> 数据库配置.cfg
+		--> url配置.cfg
+		...
+	TestCases(测试方法目录)
+		--> 测试发送请求.py
+	TestDatas(测试数据目录)
+		--> 测试数据.xlsx
+	Logs(日志目录)
+		--> 输出日志.log
+		...
+	HTMLReports(测试报告目录)
+		--> 测试报告.log
+		...
+	main.py(框架入口方法)
+```
+
+
+
+## 封装请求方法的两种方式
+先来说第一种，由于request方法会根据请求method区分请求数据的参数是params还是data，因此需要对method做判断  
+
+```python
+import requests
+
+
+def send_request(method, url, request_data):
+    if method.lower() == "get":
+        result = requests.request(method, url, params=request_data).text
+    elif method.lower() == "post":
+        result = requests.request(method, url, data=request_data).text
+    print(result)
+    return result
+
+
+
+if __name__ == '__main__':
+    method = "post"
+    url = "http://localhost:8099/futureloan/mvc/api/member/register"
+    request_data = {"mobilephone":"13623456952", "pwd":"test123"}
+    send_request(method, url, request_data)
+    
+    
+#运行结果
+D:\program\Python37\python.exe E:/python_workshop/python_API/Common/MyRequest.py
+{"status":1,"code":"10001","data":null,"msg":"注册成功"}
+
+Process finished with exit code 0
+```
+
+这种方法缺点是扩展性差，如果我要请求方式需要加上cookie，或者header，需要在方法中加上对应的字段  
+
+```python
+def send_request(method, url, request_data, cookie=None, header=None):
+    if method.lower() == "get":
+        result = requests.request(method, url, params=request_data).text
+    elif method.lower() == "post":
+        result = requests.request(method, url, data=request_data).text
+    print(result)
+    return result
+```
+
+也就是说，不同接口需要的请求信息是变化的，这就要求我们的代码要做到足够的灵活。采用关键字参数\*\*kwargs可以解决这个问题，先来看一组demo  
+
+```python
+#只有一个request_data
+import requests
+
+
+def send_request(method, url, **kwargs):
+    print(kwargs)
+
+
+
+if __name__ == '__main__':
+    method = "post"
+    url = "http://localhost:8099/futureloan/mvc/api/member/register"
+    request_data = {"mobilephone":"13623456952", "pwd":"test123"}
+    send_request(method, url, request_data=request_data)
+    
+    
+#运行结果
+D:\program\Python37\python.exe E:/python_workshop/python_API/Common/MyRequest.py
+{'request_data': {'mobilephone': '13623456952', 'pwd': 'test123'}}
+
+Process finished with exit code 0
+
+
+
+#除了request_data，还有cookie
+import requests
+
+
+def send_request(method, url, **kwargs):
+    print(kwargs)
+
+
+
+if __name__ == '__main__':
+    method = "post"
+    url = "http://localhost:8099/futureloan/mvc/api/member/register"
+    request_data = {"mobilephone":"13623456952", "pwd":"test123"}
+    send_request(method, url, request_data=request_data, cookie="JSLKAJ27643538202")
+    
+
+#运行结果
+D:\program\Python37\python.exe E:/python_workshop/python_API/Common/MyRequest.py
+{'request_data': {'mobilephone': '13623456952', 'pwd': 'test123'}, 'cookie': 'JSLKAJ27643538202'}
+
+Process finished with exit code 0
+```
+
+看到这里就明白\*\*kwargs的意义了，关键字可以有效的包装封装的请求方法始终不变，只要改变不同的传参就可以实现不同的定制，接口需要什么传什么，只要遵循key = value的形式就行  
+
+按照关键字参数的思路，我们来重新设计下封装请求方法。先来看这种写法对不对  
+
+```python
+import requests
+
+
+def send_request(method, url, **kwargs):
+    print(type(kwargs))
+    if method.lower() == "get":
+        result = requests.request(method, url, params=kwargs).text
+    elif method.lower() == "post":
+        result = requests.request(method, url, data=kwargs).text
+    print(result)
+    return result
+
+
+
+if __name__ == '__main__':
+    method = "post"
+    url = "http://localhost:8099/futureloan/mvc/api/member/register"
+    request_data = {"mobilephone":"13623456962", "pwd":"test123"}
+    send_request(method, url, request_data=request_data)
+```
+
+第一眼感觉没问题，但是怎么运行，它都只会得到一种结果  
+
+```python
+{"status":0,"code":"20103","data":null,"msg":"手机号不能为空"}
+```
+
+debug一下，就发现问题之所在了，  data=kwargs中的kwargs = {'request_data': {'mobilephone': '13623456962', 'pwd': 'test123'}}，而将data = kwargs传递给 requests.request的\*\*kwargs，会重新组合为data = {'request_data': {'mobilephone': '13623456962', 'pwd': 'test123'}}，也就是```请求参数多了一个request_data的key```，所以接口就找不到手机号了  
+
+![image-20200323124704961](C:\Users\beck\AppData\Roaming\Typora\typora-user-images\image-20200323124704961.png)   
+
+这相当于 key = value传递，我们在此基础上使得 key = { key: value }，唯一的办法是少定义一个 key = value，那么就要把请求方法中控制get还是post的判断去掉，让params=request_data或者data=request_data再传递参数时判断即可。这样整体的代码也比较简洁了  
+
+```python
+import requests
+
+
+def send_request(method, url, **kwargs):
+    result = requests.request(method, url, **kwargs).text
+    print(result)
+    return result
+
+
+
+if __name__ == '__main__':
+    method = "post"
+    url = "http://localhost:8099/futureloan/mvc/api/member/register"
+    request_data = {"mobilephone":"13623456960", "pwd":"test123"}
+    send_request(method, url, data=request_data)
+ 
+
+#运行结果
+D:\program\Python37\python.exe E:/python_workshop/python_API/Common/MyRequest.py
+{"status":1,"code":"10001","data":null,"msg":"注册成功"}
+
+Process finished with exit code 0
+```
+
+
+
+
+
+
