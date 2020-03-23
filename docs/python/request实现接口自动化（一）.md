@@ -1,6 +1,7 @@
 ## 快速导航
 - [一种冗余的设计](#一种冗余的设计）)
 - [存放测试数据](#存放测试数据)
+- [读取测试数据的两种方式](#读取测试数据的两种方式)
 
 
 
@@ -110,7 +111,7 @@ class DoExcel:
     #读取所有的测试数据
     def read_allCaseData(self):
         all_case_data = []
-        for row in range(2, self.sh.max_row):
+        for row in range(2, self.sh.max_row + 1):
             case_data = {}
             case_data["id"] = self.sh.cell(row, 1).value
             case_data["url"] = self.sh.cell(row, 4).value
@@ -128,11 +129,7 @@ if __name__ == '__main__':
     
     
 #运行结果
-D:\program\Python37\python.exe E:/python_workshop/python_API/Common/DoExcel.py
-10
-[{'id': 'register_01', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'get', 'request_data': '{"mobilephone":"13723456712", "pwd":"test123"}', 'expect_data': '{"status":1,"code":"10001","data":null,"msg":"注册成功"}'}, {'id': 'register_02', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'get', 'request_data': '{"mobilephone":"13723456713", "pwd":"test123", "regname":"xiaozhai"}', 'expect_data': '{"status":1,"code":"10001","data":null,"msg":"注册成功"}'}, {'id': 'register_03', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'post', 'request_data': '{"mobilephone":"", "pwd":"test123", "regname":"xiaozhai"}', 'expect_data': '{"status":0,"code":"20103","data":null,"msg":"手机号不能为空"}'}, {'id': 'register_04', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'get', 'request_data': '{"mobilephone":"13723456715", "pwd":"", "regname":"xiaozhai"}', 'expect_data': '{"status":0,"code":"20103","data":null,"msg":"密码不能为空"}'}, {'id': 'register_05', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'post', 'request_data': '{"mobilephone":"1372345671", "pwd":"test123", "regname":"xiaozhai"}', 'expect_data': '{"status":0,"code":"20109","data":null,"msg":"手机号码格式不正确"}'}, {'id': 'register_06', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'get', 'request_data': '{"mobilephone":"137234567156", "pwd":"test123", "regname":"xiaozhai"}', 'expect_data': '{"status":0,"code":"20109","data":null,"msg":"手机号码格式不正确"}'}, {'id': 'register_07', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'get', 'request_data': '{"mobilephone":"13723456715", "pwd":"test1", "regname":"xiaozhai"}', 'expect_data': '{"status":0,"code":"20108","data":null,"msg":"密码长度必须为6~18"}'}, {'id': 'register_08', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'get', 'request_data': '{"mobilephone":"13723456715", "pwd":"test123456789012345", "regname":"xiaozhai"}', 'expect_data': '{"status":0,"code":"20108","data":null,"msg":"密码长度必须为6~18"}'}]
-
-Process finished with exit code 0
+[{'id': 'register_01', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'get', 'request_data': '{"mobilephone":"13723456712", "pwd":"test123"}', 'expect_data': '{"status":1,"code":"10001","data":null,"msg":"注册成功"}'}, {'id': 'register_02', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'get', 'request_data': '{"mobilephone":"13723456713", "pwd":"test123", "regname":"xiaozhai"}', 'expect_data': '{"status":1,"code":"10001","data":null,"msg":"注册成功"}'}, {'id': 'register_03', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'post', 'request_data': '{"mobilephone":"", "pwd":"test123", "regname":"xiaozhai"}', 'expect_data': '{"status":0,"code":"20103","data":null,"msg":"手机号不能为空"}'}, {'id': 'register_04', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'get', 'request_data': '{"mobilephone":"13723456715", "pwd":"", "regname":"xiaozhai"}', 'expect_data': '{"status":0,"code":"20103","data":null,"msg":"密码不能为空"}'}, {'id': 'register_05', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'post', 'request_data': '{"mobilephone":"1372345671", "pwd":"test123", "regname":"xiaozhai"}', 'expect_data': '{"status":0,"code":"20109","data":null,"msg":"手机号码格式不正确"}'}, {'id': 'register_06', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'get', 'request_data': '{"mobilephone":"137234567156", "pwd":"test123", "regname":"xiaozhai"}', 'expect_data': '{"status":0,"code":"20109","data":null,"msg":"手机号码格式不正确"}'}, {'id': 'register_07', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'get', 'request_data': '{"mobilephone":"13723456715", "pwd":"test1", "regname":"xiaozhai"}', 'expect_data': '{"status":0,"code":"20108","data":null,"msg":"密码长度必须为6~18"}'}, {'id': 'register_08', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'get', 'request_data': '{"mobilephone":"13723456715", "pwd":"test123456789012345", "regname":"xiaozhai"}', 'expect_data': '{"status":0,"code":"20108","data":null,"msg":"密码长度必须为6~18"}'}, {'id': 'register_09', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'get', 'request_data': '{"mobilephone":"13723456713", "pwd":"test123"}', 'expect_data': '{"status":0,"code":"20110","data":null,"msg":"手机号码已被注册"}'}]
 ```
 
 这种方式最大的好处是代码比较清晰，我们看到for循环从第2行开始循环读取测试数据，然后把列名作为key，指定行号和列号的单元格的值作为value，存储到字典中，每行循环完了，把该行对应的字典存储到列表中，下一行开始的时候，重新生成一个空字典。但是缺点也很明显，主要集中在这里：  
@@ -144,4 +141,43 @@ Process finished with exit code 0
  case_data["request_data"] = self.sh.cell(row, 6).value
  case_data["expect_data"] = self.sh.cell(row, 7).value
 ```
-把列号写死，万一要在id和url之间加一列，url后面的列号都得变了，这样维护起来比较麻烦  
+把列号写死，万一要在id和url之间加一列，url后面的列号都得变了，这样维护起来比较麻烦。刚好之前学过zip可以把两个可迭代对象打包成一个对象，然后使用dict()将其变成字典，再追加到列表中。```第一个对象是第一行的列表组成的列表，第二个对象是每一行的单元格的值组成的列表（这里是全部读取）```  
+有了这样的思路，实现起来也比较简单：  
+
+
+```python
+from openpyxl import load_workbook
+
+class DoExcel:
+
+    def __init__(self, filePath, sheetName):
+        self.wb = load_workbook(filePath)
+        self.sh = self.wb[sheetName]
+
+
+
+
+    #读取所有测试数据
+    def read_allCaseData(self):
+        max_row = self.sh.max_row
+        max_column = self.sh.max_column
+        all_case_data = []
+        title = [self.sh.cell(1, column).value for column in range(1, max_column + 1)]
+        for row in range(2, max_row + 1):
+            case_data = [self.sh.cell(row, column).value for column in range(1, self.sh.max_column+1)]
+            all_case_data.append(dict(zip(title, case_data)))
+        print(all_case_data)
+        return all_case_data
+        
+
+
+if __name__ == '__main__':
+    DoExcel(r"E:\python_workshop\python_API\TestDatas\api_info.xlsx", "case_datas").read_allCaseData()
+    
+    
+#运行结果
+D:\program\Python37\python.exe E:/python_workshop/python_API/Common/DoExcel.py
+[{'id': 'register_01', 'api_name': 'register', '用例说明': '注册成功—无昵称', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'get', 'request_data': '{"mobilephone":"13723456712", "pwd":"test123"}', 'expect_data': '{"status":1,"code":"10001","data":null,"msg":"注册成功"}'}, {'id': 'register_02', 'api_name': 'register', '用例说明': '注册成功—有昵称', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'get', 'request_data': '{"mobilephone":"13723456713", "pwd":"test123", "regname":"xiaozhai"}', 'expect_data': '{"status":1,"code":"10001","data":null,"msg":"注册成功"}'}, {'id': 'register_03', 'api_name': 'register', '用例说明': '手机号为空', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'post', 'request_data': '{"mobilephone":"", "pwd":"test123", "regname":"xiaozhai"}', 'expect_data': '{"status":0,"code":"20103","data":null,"msg":"手机号不能为空"}'}, {'id': 'register_04', 'api_name': 'register', '用例说明': '密码为空', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'get', 'request_data': '{"mobilephone":"13723456715", "pwd":"", "regname":"xiaozhai"}', 'expect_data': '{"status":0,"code":"20103","data":null,"msg":"密码不能为空"}'}, {'id': 'register_05', 'api_name': 'register', '用例说明': '手机号长度少于11位', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'post', 'request_data': '{"mobilephone":"1372345671", "pwd":"test123", "regname":"xiaozhai"}', 'expect_data': '{"status":0,"code":"20109","data":null,"msg":"手机号码格式不正确"}'}, {'id': 'register_06', 'api_name': 'register', '用例说明': '手机号长度多于11位', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'get', 'request_data': '{"mobilephone":"137234567156", "pwd":"test123", "regname":"xiaozhai"}', 'expect_data': '{"status":0,"code":"20109","data":null,"msg":"手机号码格式不正确"}'}, {'id': 'register_07', 'api_name': 'register', '用例说明': '密码长度少于8位', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'get', 'request_data': '{"mobilephone":"13723456715", "pwd":"test1", "regname":"xiaozhai"}', 'expect_data': '{"status":0,"code":"20108","data":null,"msg":"密码长度必须为6~18"}'}, {'id': 'register_08', 'api_name': 'register', '用例说明': '密码长度多于18位', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'get', 'request_data': '{"mobilephone":"13723456715", "pwd":"test123456789012345", "regname":"xiaozhai"}', 'expect_data': '{"status":0,"code":"20108","data":null,"msg":"密码长度必须为6~18"}'}, {'id': 'register_09', 'api_name': 'register', '用例说明': '重复注册', 'url': 'http://localhost:8099/futureloan/mvc/api/member/register', 'method': 'get', 'request_data': '{"mobilephone":"13723456713", "pwd":"test123"}', 'expect_data': '{"status":0,"code":"20110","data":null,"msg":"手机号码已被注册"}'}]
+
+Process finished with exit code 0
+```
