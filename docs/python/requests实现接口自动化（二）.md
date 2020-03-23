@@ -79,7 +79,7 @@ class TestMyRequest(unittest.TestCase):
 
 ## 实现参数化的两种方式
 
-想象一种情况，如果我们的手机号是写死的，那么手机号正常注册后，下次再运行，注册接口会报错：手机号已注册，如何实现手机号码的动态参数化，是摆在我们面前的一个问题。目前有两种解决办法，一是清库，二是随机生成，在实际项目中，一个账号涉及到的数据是比较多的，不仅有数据库，还有缓存，因此清库这种办法比较麻烦，第二种随机生成是可以做到的。随机生成的手机号又分为两种方式，一种是使用Excel，一种是使用Excel + 反射  
+想象一种情况，如果我们的手机号是写死的，那么手机号正常注册后，下次再运行，注册接口会报错：手机号已注册，如何实现手机号码的动态参数化，是摆在我们面前的一个问题。目前有两种解决办法，一是清库，二是随机生成，在实际项目中，一个账号涉及到的数据是比较多的，不仅有数据库，还有缓存，因此清库这种办法比较麻烦，第二种随机生成是可以做到的。随机生成的手机号又分为两种方式，一种是使用Excel，一种是使用Excel + 时间戳  
 
 
 ### Excel的方式实现参数化  
@@ -223,5 +223,122 @@ class TestMyRequest(unittest.TestCase):
 ![image-20200323204112493](https://i.loli.net/2020/03/23/XOqAWpG9K3fvEFm.png)  
 
 
-### Excel + 反射的方式实现参数化
+### Excel + 时间戳的方式实现参数化
+
+这种方式采取截取时间戳和号段一起拼接成动态的手机号，然后替换掉Excel中的${phonex}，那么问题来了  
+```python
+1. 如何拼接时间戳，这个比较好解决，定义一个随机方法即可
+2. 如何识别${phonex}，这个也比较好解决，使用字符串.find()即可
+3. 最大的问题是，怎么将${phonex}和随机方法联系起来并替换
+```
+
+要解决第3点，我们首先要考虑，${phonex}和随机方法的关联，是不是可以设置随机方法为random_phone()来返回一个动态的手机号，```也就是"${phonex}"使用正则表达式去掉${}和x后得到了"phone"，这个"phone"和"random“拼接成了"random_phone```，我们怎么调用random_phone()方法呢？```python中的eval()可以实现这一功能，eval("random_phone()")执行的就是random_phone()这个方法```，基于这一点，我们完善了一些代码   
+
+在Common目录下定义一个RandomGenerate类，这个类是用来随机生成手机号的  
+```python
+import time
+
+
+class RandomGenerate:
+
+    def __init__(self):
+        self.timestamp = str(round(time.time_ns()))
+
+
+    #随机生成手机号
+    def random_phone(self):
+        random_phone = "131" + self.timestamp[-8:]
+        return random_phone
+
+
+
+if __name__ == '__main__':
+    print(RandomGenerate().random_phone())
+```
+
+在Common目录下，再定义一个ReplaceVariable类，这个类是用来替换请求参数的```
+```python
+import re
+from Common.RandomGenerate import *
+
+class ReplaceVariable:
+
+
+    def replace_varibale(params):
+        if params.find("${") != -1:
+            random_phone = eval("RandomGenerate().random_{0}()".format(re.sub("\d+", "", re.findall("\${(\\w+)}", params)[0])))
+            params = re.sub("\${\\w+}", random_phone, params)
+        return params
+```
+修改DoExcel，修改的目的是将all_case_data中的case_data["request_data"]都替换成动态的参数，以及去掉一些无用的方法。这里唯一需要注意的一个地方是，在每次替换后都等待了0.01s，这是为了防止多次生成的手机号一样，因为代码执行太快，而两个需要不同手机号的用例又紧挨着，可能会发生手机号一样的情况   
+```python
+from openpyxl import load_workbook
+from Common.ReplaceVariable import *
+import time
+
+class DoExcel:
+
+    def __init__(self, filePath):
+        self.filePath = filePath
+        self.wb = load_workbook(self.filePath)
+        self.sh = self.wb["case_datas"]
+        self.init_sh = self.wb["init_data"]
+
+
+
+    #读取所有测试数据
+    def read_allCaseData(self):
+        max_row = self.sh.max_row
+        max_column = self.sh.max_column
+        all_case_data = []
+        title = [self.sh.cell(1, column).value for column in range(1, max_column + 1)]
+        for row in range(2, max_row + 1):
+            case_data = [self.sh.cell(row, column).value for column in range(1, self.sh.max_column+1)]
+            all_case_data.append(dict(zip(title, case_data)))
+        for case_data in all_case_data:
+            case_data["request_data"] = ReplaceVariable.replace_varibale(case_data["request_data"])
+            time.sleep(0.01)
+        return all_case_data
+
+
+
+
+if __name__ == '__main__':
+    DoExcel(r"E:\python_workshop\python_API\TestDatas\api_info.xlsx").read_allCaseData()
+```
+最后再修改测试请求类TestMyRequests，查看测试结果   
+```python
+import unittest
+import ddt
+import json, time
+from Common.DoExcel import DoExcel
+from Common.MyRequest import *
+
+
+@ddt.ddt
+class TestMyRequest(unittest.TestCase):
+    do_excel = DoExcel(r"E:\python_workshop\python_API\TestDatas\api_info.xlsx")
+
+    all_case_data = do_excel.read_allCaseData()
+
+
+
+    @ddt.data(*all_case_data)
+    def test_my_request(self, case_data):
+        method = case_data["method"]
+        print("request_data: ", case_data["request_data"])
+        if method.lower() == "get":
+            result = send_request(case_data["method"], case_data["url"], params=json.loads(case_data["request_data"]))
+        elif method.lower() == "post":
+            result = send_request(case_data["method"], case_data["url"], data=json.loads(case_data["request_data"]))
+        print(result)
+        self.assertEqual(case_data["expect_data"], result)
+
+```
+
+![image-20200323235835199](https://i.loli.net/2020/03/24/CAnyWXNQzx6JD3U.png)  
+
+这样做的一些好处我们总结下：  
+1. 数据生成更灵活，不依赖于Excel初始数据，因为不用写Excel，所以Excel打开的情况下也能读取并执行 
+2. 不用统计${phonex}有多少个，再决定生成多少个动态的手机号  
 
