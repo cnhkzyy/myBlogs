@@ -2,6 +2,8 @@
 - [```实现测试请求类的两种方式```](#实现测试请求类的两种方式)
 - [```实现参数化的两种方式```](#实现参数化的两种方式)
 - [```实现接口关联的两种方式```](#实现接口关联的两种方式)
+- [```优化：断言正则化```](#优化：断言正则化)
+- [```优化：接口关联之补充```](#优化：接口关联之补充)
 
 
 
@@ -359,9 +361,9 @@ class TestMyRequest(unittest.TestCase):
 4. 在断言之前判断case_id["expression"]是否为空，如果非空，则使用字符串分割的方式将${user_id}="id":(\d+)分割为${user_id}和‘"id":(\d+)’，其中全局变量的key = ${user_id}，全局变量的value = re.findall('"id":(\d+)', result)[0]，将key和value添加到全局变量var中
 5. 在接口请求前判断var的长度是否为空，并且case_data["request_data"]是否为空，如果均为非空，则判断使用for key, value in var.items()来遍历全局变量，接着判断case["request_data"].find(key) != -1，如果判断成立，使用字符串的replace方法将value来取代key
 ```
-Excel中的设计也不难  
+Excel中的设计也不难   
 
-![image-20200324124807776](D:/program/Typora/upload/image-20200324124807776.png)  
+ ![image-20200324143640718](https://i.loli.net/2020/03/24/6PgN1AX3W2jyCFK.png)  
 
 代码中需要对测试请求类TestMyRequest做一些调整，一个是断言前提取并存入全局变量，一个是请求前判断并做替换  
 
@@ -414,7 +416,7 @@ def test_my_request(self, case_data):
 
 Excel中需要加上一些反射的列和反射特有的标识{{参数名}}和提取表达式   
 
-![image-20200324141534756](https://i.loli.net/2020/03/24/U5AHN7zrOMg8ovE.png)
+![image-20200324152133326](https://i.loli.net/2020/03/24/Ux9XsS1epAkhzcC.png)
 
 在Common下创建一个反射类Context   
 
@@ -487,4 +489,87 @@ class TestMyRequest(unittest.TestCase):
 ![image-20200324142009707](https://i.loli.net/2020/03/24/vuAwUC6fJTMi3aH.png)
 
 
-同理，还可以看看响应结果提取和替换的情况  
+## 优化：断言正则化
+
+请看一种场景，投资接口返回的测试数据是动态变化的，类似下面这种形式：  
+```python
+result: {"status":1,"code":"10001","data":{"id":128,"regname":"xiaozhai","pwd":"CC03E747A6AFBBCBF8BE7668ACFEBEE5","mobilephone":"13179150300","leaveamount":"200.00","type":"1","regtime":"2020-03-24 14:46:31.0"},"msg":"充值成功"}
+```
+
+在这里返回结果中，如果使用self.assertEqual()显然不合适，对于这个接口，```我们应该只关心字段中的status、code、mobilephone、leaveamount以及msg```，因为就要做部分匹配了，部分匹配我们首先想到的是正则表达式，实际上也确实是这样。对于校验字段，其他的还好，```只有mobilephone需要给case_data["expect_data"]做替换```，那么我们把Excel中的expect_data处理一下  
+
+![image-20200324150628623](https://i.loli.net/2020/03/24/lMzxO8ZNswRiBoj.png)  
+
+然后测试请求类TestMyRequest中对case_data["expect_data"]做替换  
+```python
+#替换期望结果
+case_data["expect_data"] = ReplaceVariable.replace_varibale(case_data["expect_data"])
+```
+最后使用self.assertIsNotNone和re.search()结合做断言   
+
+```python
+self.assertIsNotNone(re.search(case_data["expect_data"], result))
+```
+
+
+## 优化：接口关联之补充
+
+在接口关联那一部分，我们只看了一种情况，就是重复注册接口依赖注册接口的请求手机号，但是依赖返回结果的情况没有说，这里再来看一个场景，获取投资列表接口的请求参数memberId来自于投资接口返回结果中的id，这样先从设计Excel开始，可以把投资接口的response_context设置为响应结果的提取表达式user_id="id":(\d+)，再把获取投资记录里的请求数据中的memberId的值参数化{{user_id}}   
+
+![image-20200324152815664](https://i.loli.net/2020/03/24/LD6Eria8wF7Oh4n.png)  
+
+剩下的我们就去测试请求类TestMyRequest中对提取到的响应结果做反射  
+```python
+import unittest
+import ddt
+import re
+import json, time
+from Common.DoExcel import DoExcel
+from Common.MyRequest import *
+from Common.ReplaceVariable import ReplaceVariable
+from Common.Context import Context
+
+
+
+@ddt.ddt
+class TestMyRequest(unittest.TestCase):
+    do_excel = DoExcel(r"E:\python_workshop\python_API\TestDatas\api_info.xlsx")
+    all_case_data = do_excel.read_allCaseData()
+
+
+
+    @ddt.data(*all_case_data)
+    def test_my_request(self, case_data):
+
+        #替换请求参数
+        case_data["request_data"] = ReplaceVariable.replace_varibale(case_data["request_data"])
+
+
+        #请求数据反射
+        if case_data["request_context"] != None:
+            key, pattern = case_data["request_context"].split("=")
+            value = re.findall(pattern, case_data["request_data"])[0]
+            setattr(Context, key, value)
+
+
+        method = case_data["method"]
+        if method.lower() == "get":
+            result = send_request(method, case_data["url"], params=json.loads(case_data["request_data"]))
+        elif method.lower() == "post":
+            result = send_request(method, case_data["url"], data=json.loads(case_data["request_data"]))
+
+
+        #响应数据反射
+        if case_data["response_context"] != None:
+            key, pattern = case_data["response_context"].split("=")
+            value = re.findall(pattern, result)[0]
+            setattr(Context, key, value)
+
+
+        #替换期望结果
+        print(case_data["request_data"])
+        print(result)
+        case_data["expect_data"] = ReplaceVariable.replace_varibale(case_data["expect_data"])
+        self.assertIsNotNone(re.search(case_data["expect_data"], result))
+```
+
