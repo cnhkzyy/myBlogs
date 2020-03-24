@@ -140,7 +140,7 @@ runner.run(suite)
 
 可以发现，在我们的脚本里充斥着大量的绝对路径，诸如这样的  
 
-![image-20200324160238301](D:/program/Typora/upload/image-20200324160238301.png)  
+![image-20200324160238301](https://i.loli.net/2020/03/24/WdcLDrM1okRu6zp.png)  
 
 一旦工程目录发生变化，给脚本的运行和维护带来了诸多不便。鉴于这种情况，把绝对路径配置化就显得很有必要。首先在Common目录下新建一个ConfDir类，类中的内容为  
 
