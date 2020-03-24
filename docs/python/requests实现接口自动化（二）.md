@@ -567,8 +567,6 @@ class TestMyRequest(unittest.TestCase):
 
 
         #替换期望结果
-        print(case_data["request_data"])
-        print(result)
         case_data["expect_data"] = ReplaceVariable.replace_varibale(case_data["expect_data"])
         self.assertIsNotNone(re.search(case_data["expect_data"], result))
 ```
