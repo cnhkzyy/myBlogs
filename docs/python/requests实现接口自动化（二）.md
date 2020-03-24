@@ -414,7 +414,7 @@ def test_my_request(self, case_data):
 
 Excel中需要加上一些反射的列和反射特有的标识{{参数名}}和提取表达式   
 
-![image-20200324141534756](D:/program/Typora/upload/image-20200324141534756.png)
+![image-20200324141534756](https://i.loli.net/2020/03/24/U5AHN7zrOMg8ovE.png)
 
 在Common下创建一个反射类Context   
 
@@ -484,4 +484,7 @@ class TestMyRequest(unittest.TestCase):
         self.assertEqual(case_data["expect_data"], result)
 ```
 
-![image-20200324142009707](D:/program/Typora/upload/image-20200324142009707.png)
+![image-20200324142009707](https://i.loli.net/2020/03/24/vuAwUC6fJTMi3aH.png)
+
+
+同理，还可以看看响应结果提取和替换的情况  
