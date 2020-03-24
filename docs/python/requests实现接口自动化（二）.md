@@ -270,7 +270,8 @@ class ReplaceVariable:
             params = re.sub("\${\\w+}", random_phone, params)
         return params
 ```
-修改DoExcel，修改的目的是将all_case_data中的case_data["request_data"]都替换成动态的参数，以及去掉一些无用的方法。这里唯一需要注意的一个地方是，在每次替换后都等待了0.01s，这是为了防止多次生成的手机号一样，因为代码执行太快，而两个需要不同手机号的用例又紧挨着，可能会发生手机号一样的情况   
+
+修改DoExcel，修改的目的是去掉一些无用的方法
 ```python
 from openpyxl import load_workbook
 from Common.ReplaceVariable import *
@@ -295,9 +296,6 @@ class DoExcel:
         for row in range(2, max_row + 1):
             case_data = [self.sh.cell(row, column).value for column in range(1, self.sh.max_column+1)]
             all_case_data.append(dict(zip(title, case_data)))
-        for case_data in all_case_data:
-            case_data["request_data"] = ReplaceVariable.replace_varibale(case_data["request_data"])
-            time.sleep(0.01)
         return all_case_data
 
 
@@ -306,13 +304,14 @@ class DoExcel:
 if __name__ == '__main__':
     DoExcel(r"E:\python_workshop\python_API\TestDatas\api_info.xlsx").read_allCaseData()
 ```
-最后再修改测试请求类TestMyRequests，查看测试结果   
+最后再修改测试请求类TestMyRequests，在里面调用替换方法，替换动态的手机号，运行并查看测试结果   
 ```python
 import unittest
 import ddt
 import json, time
 from Common.DoExcel import DoExcel
 from Common.MyRequest import *
+from Common.ReplaceVariable import ReplaceVariable
 
 
 @ddt.ddt
@@ -325,15 +324,16 @@ class TestMyRequest(unittest.TestCase):
 
     @ddt.data(*all_case_data)
     def test_my_request(self, case_data):
+
+        #替换随机手机号
+        case_data["request_data"] = ReplaceVariable.replace_varibale(case_data["request_data"])
+
         method = case_data["method"]
-        print("request_data: ", case_data["request_data"])
         if method.lower() == "get":
             result = send_request(case_data["method"], case_data["url"], params=json.loads(case_data["request_data"]))
         elif method.lower() == "post":
             result = send_request(case_data["method"], case_data["url"], data=json.loads(case_data["request_data"]))
-        print(result)
         self.assertEqual(case_data["expect_data"], result)
-
 ```
 
 ![image-20200323235835199](https://i.loli.net/2020/03/24/CAnyWXNQzx6JD3U.png)  
@@ -341,4 +341,5 @@ class TestMyRequest(unittest.TestCase):
 这样做的一些好处我们总结下：  
 1. 数据生成更灵活，不依赖于Excel初始数据，因为不用写Excel，所以Excel打开的情况下也能读取并执行 
 2. 不用统计${phonex}有多少个，再决定生成多少个动态的手机号  
+
 
