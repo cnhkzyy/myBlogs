@@ -26,9 +26,9 @@ class TestMyRequest(unittest.TestCase):
         for case_data in self.all_case_data:
             method = case_data["method"]
             if method.lower() == "get":
-                result = send_request(case_data["method"], case_data["url"], params=json.loads(case_data["request_data"]))
+                result = send_request(method, case_data["url"], params=json.loads(case_data["request_data"]))
             elif method.lower() == "post":
-                result = send_request(case_data["method"], case_data["url"], data=json.loads(case_data["request_data"]))
+                result = send_request(method, case_data["url"], data=json.loads(case_data["request_data"]))
             print(result)
             self.assertEqual(case_data["expect_data"], result)
 ```
@@ -56,9 +56,9 @@ class TestMyRequest(unittest.TestCase):
     def test_my_request(self, case_data):
         method = case_data["method"]
         if method.lower() == "get":
-            result = send_request(case_data["method"], case_data["url"], params=json.loads(case_data["request_data"]))
+            result = send_request(method, case_data["url"], params=json.loads(case_data["request_data"]))
         elif method.lower() == "post":
-            result = send_request(case_data["method"], case_data["url"], data=json.loads(case_data["request_data"]))
+            result = send_request(method, case_data["url"], data=json.loads(case_data["request_data"]))
         print(result)
         self.assertEqual(case_data["expect_data"], result)
 ```
@@ -208,9 +208,9 @@ class TestMyRequest(unittest.TestCase):
     def test_my_request(self, case_data):
         method = case_data["method"]
         if method.lower() == "get":
-            result = send_request(case_data["method"], case_data["url"], params=json.loads(case_data["request_data"]))
+            result = send_request(method, case_data["url"], params=json.loads(case_data["request_data"]))
         elif method.lower() == "post":
-            result = send_request(case_data["method"], case_data["url"], data=json.loads(case_data["request_data"]))
+            result = send_request(method, case_data["url"], data=json.loads(case_data["request_data"]))
         print(result)
         self.assertEqual(case_data["expect_data"], result)
 ```
@@ -267,8 +267,8 @@ class ReplaceVariable:
 
     def replace_varibale(params):
         if params.find("${") != -1:
-            random_phone = eval("RandomGenerate().random_{0}()".format(re.sub("\d+", "", re.findall("\${(\\w+)}", params)[0])))
-            params = re.sub("\${\\w+}", random_phone, params)
+            replace_string = eval("RandomGenerate().random_{0}()".format(re.sub("\d+", "", re.findall("\${(\\w+)}", params)[0])))
+            params = re.sub("\${\\w+}", replace_string, params)
         return params
 ```
 
@@ -331,9 +331,9 @@ class TestMyRequest(unittest.TestCase):
 
         method = case_data["method"]
         if method.lower() == "get":
-            result = send_request(case_data["method"], case_data["url"], params=json.loads(case_data["request_data"]))
+            result = send_request(method, case_data["url"], params=json.loads(case_data["request_data"]))
         elif method.lower() == "post":
-            result = send_request(case_data["method"], case_data["url"], data=json.loads(case_data["request_data"]))
+            result = send_request(method, case_data["url"], data=json.loads(case_data["request_data"]))
         self.assertEqual(case_data["expect_data"], result)
 ```
 
@@ -347,7 +347,7 @@ class TestMyRequest(unittest.TestCase):
 ## 实现接口关联的两种方式
 
 在接口关联中，我们要处理两种情况，一种是B接口的请求参数需要依赖A接口的返回结果中的某个值，这种常见的例子是获取验证码和登录，登录接口的请求参数中的验证码是从获取验证码接口的返回结果中拿到的；另一种是B接口的请求参数需要依赖A接口的请求参数中的某个值，这种常见的例子是重复注册和注册后登陆  
-使用我们旧的参数化方法，也就是Excel init_data做初始化，不存在第二种情况，只要保证注册接口和重复注册接口的变量符号一致(都是${phone2})就行，${phone2}在init_data字典中对应的值是init_data["phone2"]，但是新的参数化方法就不一样了，直接忽略掉了后缀的数字(2)，然后拼接成random_phone，每次都通过使用eval()方法动态的调用random_phone()方法，因此重复注册接口获取到的手机号也是动态生成的，所以需要针对这一问题做响应的处理  
+使用我们旧的参数化方法，也就是Excel init_data做初始化，不存在第二种情况，只要保证注册接口和重复注册接口的变量符号一致(都是${phone2})就行，${phone2}在init_data字典中对应的值是init_data["phone2"]，但是新的参数化方法就不一样了，直接忽略掉了后缀的数字(2)，然后拼接成random_phone，每次都通过使用eval()方法动态的调用random_phone()方法，因此重复注册接口获取到的手机号也是动态生成的，所以需要针对这一问题做相应的处理  
 
 ### 设置全局变量  
 
@@ -361,5 +361,127 @@ class TestMyRequest(unittest.TestCase):
 ```
 Excel中的设计也不难  
 
-![image-20200324124807776](D:/program/Typora/upload/image-20200324124807776.png)
+![image-20200324124807776](D:/program/Typora/upload/image-20200324124807776.png)  
 
+代码中需要对测试请求类TestMyRequest做一些调整，一个是断言前提取并存入全局变量，一个是请求前判断并做替换  
+
+```python
+...
+global var = {}
+@ddt.data(*all_case_data)
+def test_my_request(self, case_data):
+        global global_var
+        if len(global_var) > 0 and case_data["request_data"] is not None:
+            for key, value in global_var.items():
+                if case_data["request_data"].find(key) != -1:
+                    case_data["request_data"] = case_data["request_data"].replace(key, value)
+                    
+         method = case_data["method"]
+        if method.lower() == "get":
+            result = send_request(method, case_data["url"], params=json.loads(case_data["request_data"]))
+        elif method.lower() == "post":
+            result = send_request(method, case_data["url"], data=json.loads(case_data["request_data"]))
+        
+        
+        if "expression" in case_data.keys():
+            #分割case_data["expression"]，=前面的是key,=后面的是提取表达式
+            temp= case_data["expression"].split("=")
+            print(temp)
+            key = temp[0]
+            reg = temp[1]
+            #从响应结果中提取出用户id，将其作为值存储在global_var中
+            value = re.findall(reg, res)[0]
+            global_var[key] = value
+            print(global_var)
+            
+            
+        self.assertEqual(case_data["expect_data"], result)        
+```
+
+
+### 引入反射
+
+反射是个动态的概念，指的是脚本运行过程中自动的给反射类添加属性，可以理解成一个类似字典一样的容器，只不过我们的对象是类，通过调用```类.属性名```的方式获取到依赖的数据，拿到依赖的数据再做一次替换即可。根据这个原理，我们可以将思路整理下  
+
+```python
+1. Excel中需要添加request_context和reponse_context的列
+2. 如果注册接口需要提取请求数据，则在request_context中加入对应的提取表达式，比如phone2=(\d(11))，response_context的情况依然
+3. 如果重复注册接口需要替换请求参数，则使用{{phone2}}的形式，将替换和提取标识关联起来，比如{"mobilephone":"{{phone2}}", "pwd":"test123"}
+4. 在Common下创建一个反射类Context
+5. 修改ReplaceVariable类，判断如果请求参数里有"{{"，则使用eval调用Context.phone的形式将{{phone2}}替换为Context.phone的属性值
+6. 修改测试请求类TestMyRequest，将请求数据反射到反射类
+```
+
+Excel中需要加上一些反射的列和反射特有的标识{{参数名}}和提取表达式   
+
+![image-20200324141534756](D:/program/Typora/upload/image-20200324141534756.png)
+
+在Common下创建一个反射类Context   
+
+```python
+class Context:
+    pass
+```
+
+修改参数替换类ReplaceVariable类，主要加入对```{{参数}}}的判断和替换```   
+
+```python
+import re
+from Common.RandomGenerate import *
+from Common.Context import Context
+
+class ReplaceVariable:
+
+
+    def replace_varibale(params):
+        if params.find("${") != -1:
+            replace_string = eval("RandomGenerate().random_{0}()".format(re.sub("\d+", "", re.findall("\${(\\w+)}", params)[0])))
+            params = re.sub("\${\\w+}", replace_string, params)
+        elif params.find("{{") != -1:
+            replace_string = eval("Context.{0}".format(re.findall("{{(\\w+)}}", params)[0]))
+            params = re.sub("{{\\w+}}", replace_string, params)
+        return params
+```
+
+最后修改测试请求类TestMyRequest类，运行并得到返回结果   
+```python
+import unittest
+import ddt
+import re
+import json, time
+from Common.DoExcel import DoExcel
+from Common.MyRequest import *
+from Common.ReplaceVariable import ReplaceVariable
+from Common.Context import Context
+
+
+
+@ddt.ddt
+class TestMyRequest(unittest.TestCase):
+    do_excel = DoExcel(r"E:\python_workshop\python_API\TestDatas\api_info.xlsx")
+    all_case_data = do_excel.read_allCaseData()
+
+
+
+    @ddt.data(*all_case_data)
+    def test_my_request(self, case_data):
+
+        #替换随机参数
+        case_data["request_data"] = ReplaceVariable.replace_varibale(case_data["request_data"])
+
+        #请求数据反射
+        if case_data["request_context"] != None:
+            key, pattern = case_data["request_context"].split("=")
+            value = re.findall(pattern, case_data["request_data"])[0]
+            setattr(Context, key, value)
+
+        method = case_data["method"]
+        if method.lower() == "get":
+            result = send_request(method, case_data["url"], params=json.loads(case_data["request_data"]))
+        elif method.lower() == "post":
+            result = send_request(method, case_data["url"], data=json.loads(case_data["request_data"]))
+
+        self.assertEqual(case_data["expect_data"], result)
+```
+
+![image-20200324142009707](D:/program/Typora/upload/image-20200324142009707.png)
