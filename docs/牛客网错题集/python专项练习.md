@@ -1,4 +1,12 @@
+## 快速导航
++ [```2020年3月22日```](#2020年3月22日)
++ [```2020年3月29日```](#2020年3月29日）)
+
+
+
+
 ## 2020年3月22日
+
 1.如下程序会打印多少个数（）
 
 ```python
@@ -249,4 +257,204 @@ D. 第六行
 
 第二行，在python3中，input输入的都是字符串，所以a, b, c = "12 13 14"，会报错ValueError: too many values to unpack (expected 3)。因为正常情况下，a = 1, b = 2, c = " "，剩下的值没有变量接收  
 第五行，应该使用math.sqrt，否则会报NameError: name 'sqrt' is not defined  
+
+
+## 2020年3月29日  
+
+1.关于Python中的复数，下列说法错误的是（）  
+A.表示复数的语法是real + image j  
+B.实部和虚部都是浮点型  
+C.虚部必须后缀j，且必须小写  
+D.方法conjugate返回复数的共轭复数  
+
+**答案**：C
+
+**分析** 
+
+```把形如z = a + bj(a, b均为实数)的数称为复数，其中a称为实部，b称为虚部，j称为虚数单位,其中虚拟部分必须有后缀j或J,实数部分和虚部部分在Python中都是浮点数```   
+
+```python
+C:\Users\beck
+λ python
+Python 3.7.3 (v3.7.3:ef4ec6ed12, Mar 25 2019, 22:22:05) [MSC v.1916 64 bit (AMD64)] on win32
+Type "help", "copyright", "credits" or "license" for more information.
+>>> a = 1 + 2j
+>>> a.real
+1.0
+>>> type(a.real)
+<class 'float'>
+>>> a.imag
+2.0
+>>> type(a.imag)
+<class 'float'>
+>>>
+```
+
+2.已知print_func.py的代码如下： 
+
+```python
+print('Hello
+World!')
+print('__name__
+value: ', __name__)
+  
+def main():
+    
+print('This message is from main function')
+  
+if __name__ ==
+'__main__':
+    
+main()
+  
+print_module.py的代码如下：
+import print_func
+print("Done!")
+```
+
+运行print_module.py程序，结果是：  
+A. Hello World!  __name__ value: print_func  Done!  
+B. Hello World!  __name__ value: print_module  Done!  
+C. Hello World!  __name__ value: __main__  Done!  
+D. Hello World!  __name__ value:  Done!  
+
+**答案**:A
+
+**分析**
+一个python的文件有两种使用的方式，第一种直接作为脚本执行，第二种是import到其他的python模块中被调用时执行，在自己的模块中时，__name__的值等于'__main__‘，当导入到外部模块时，这个值是去除后缀.py的模块名  
+
+![image-20200329213035328](https://i.loli.net/2020/03/29/6DzBwhEdkuGWe9L.png)  
+
+![image-20200329213118974](https://i.loli.net/2020/03/29/r1QTLXHVMCAfxow.png)  
+
+3.对于以下代码，描述正确的是：  
+```python
+list = ['1', '2', '3', '4', '5']
+print list[10:]
+```
+
+A. 导致 IndexError  
+B.输出['1', '2', '3', '4', '5']  
+C.编译错误  
+D.输出[ ]  
+
+**答案**:D
+
+**分析**
+
+```list[10]会提示越界，但list[10:]输出为空列表```
+
+4.python代码如下： 
+```python
+foo = [1,2]
+foo1 = foo
+foo.append(3)
+```
+
+A.foo值为[1,2]   
+B.foo值为[1,2,3]  
+C.foo1值为[1,2]  
+D.foo1值为[1,2,3]  
+
+**答案**：BD
+
+**分析**
+
+```列表在python中以"列表类"的形式存在，创建一个列表，即实例化一个类。python里的对象赋值实际上是对象的引用。foo = [1,2]， foo1 = foo，就是将列表对象赋予"foo1"，此时foo和foo1指向内存中同一个对象，而append()是列表类的方法，append()方法是在自身对象上进行操作，因为foo和foo1都是指向同一个列表对象，所以foo和foo1会得到同样的结果，另一个例子，foo = [1,2]，foo1 = foo，foo = [3]的结果是foo1 = [1, 2], foo = [3]，因为foo = [3]会实例化一个新的列表类```
+
+5.__new__和__init__的区别，说法正确的是（）  
+A.__new__是一个静态方法，而__init__是一个实例方法  
+B.__new__方法会返回一个创建的实例，而__init__什么都不返回  
+C.只有在__new__返回一个cls的实例时，后面的__init__才能被调用  
+D.当创建一个新实例时调用__new__，初始化一个实例时调用__init__  
+
+**答案**：A B C D
+
+**分析**
+
+```python3中的类都是type类的实例，__new__方法创建并返回了新的class对象，随后__init__方法初始化了新创建的对象，并不返回值。从源码中看__new__是一个静态方法，而__init__是实例方法```
+
+```python
+@staticmethod # known case of __new__
+    def __new__(*args, **kwargs): # real signature unknown
+        """ Create and return a new object.  See help(type) for accurate signature. """
+        pass
+        
+    def __init__(cls, what, bases=None, dict=None): # known special case of type.__init__
+        """
+        type(object_or_name, bases, dict)
+        type(object) -> the object's type
+        type(name, bases, dict) -> a new type
+        # (copied from class doc)
+        """
+        pass
+```
+
+![image-20200329224139496](https://i.loli.net/2020/03/29/Z5BRYzkhKJOpH6G.png)   
+
+6.Python中单下划线\_foo与双下划线__foo与__foo__的成员，下列说法正确的是（）  
+
+A. \_foo 不能直接用于’from module import \*'  
+B. \__foo解析器用\_classname\__foo来代替这个名字，以区别和其他类相同的命名  
+C. __foo__代表python里特殊方法专用的标识  
+D. \__foo可以直接用于’from module import \*'  
+
+**答案**：ABC
+
+**分析**
+
+```python
+python中主要存在四种命名方式：
+1. object      公共方法
+2. _object     半保护，相当于"protect"，只有类对象和子类对象能访问到这些变量，在模块外或类外不可以使用，不能用from module import *导入
+3.__object     全私有，全保护，私有成员"private"，只有类对象能访问，连子类对象都不能访问，更不能用from module import * 导入
+__object为了避免与子类的方法名称冲突，对于该标识符描述的方法，父类的方法不能轻易被子类的方法覆盖，它们的名字实际上是_classname__methodname
+4.__object__   内建方法，用户不要这样定义
+```
+
+![image-20200329225735454](https://i.loli.net/2020/03/29/1zmu7bZpF9y8Yr4.png)  
+
+7.若 a = range(100)，以下哪些操作是合法的（）  
+
+A. a[-3]  
+B. a[2:13]  
+C. [::3]  
+D. a[2-3]  
+
+**答案**: ABCD
+
+**分析**
+
+```python
+a[: : 3]  start为0，end为99，step为3，依次是0 3 6 9...99
+a[2 - 3]即a[-1]，等于99
+```
+
+8.下列关于python socket操作叙述正确的是（）  
+A. 使用recvfrom()接收TCP数据  
+B. 使用getsockname()获取连接套接字的远程地址  
+C. 使用connect()初始化TCP服务器连接  
+D. 服务端使用listen()开始TCP监听  
+
+**答案**:CD
+
+**分析**
+recvfrom()接收UDP消息  
+getsockname()返回当前套接字的地址  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
