@@ -1,6 +1,7 @@
 ## 快速导航
 - [```2020年3月22日```](#2020年3月22日)
 - [```2020年3月29日```](#2020年3月29日)
+- [```2020年3月31日```](#2020年3月31日)
 
 
 
@@ -313,10 +314,16 @@ print("Done!")
 ```
 
 运行print_module.py程序，结果是：  
-A. Hello World!  __name__ value: print_func  Done!  
-B. Hello World!  __name__ value: print_module  Done!  
-C. Hello World!  __name__ value: __main__  Done!  
+
+```python
+A. Hello World!  __name__ value: print_func  Done!    
+
+B. Hello World!  __name__ value: print_module  Done!       
+
+C. Hello World!  __name__ value: __main__  Done!     
+
 D. Hello World!  __name__ value:  Done!  
+```
 
 **答案**:A
 
@@ -325,7 +332,7 @@ D. Hello World!  __name__ value:  Done!
 
 ![image-20200329213035328](https://i.loli.net/2020/03/29/6DzBwhEdkuGWe9L.png)  
 
-![image-20200329213118974](https://i.loli.net/2020/03/29/r1QTLXHVMCAfxow.png)  
+![image-20200331223935745](https://i.loli.net/2020/03/31/UwcxjfzqJX5brKS.png)  
 
 3.对于以下代码，描述正确的是：  
 ```python
@@ -443,6 +450,204 @@ recvfrom()接收UDP消息
 getsockname()返回当前套接字的地址  
 
 
+## 2020年3月31日 
+
+1.下列哪个语句在Python是非法的？（）  
+
+A. x = y = z = 1  
+B. x = (y = z + 1)  
+C. x, y = y, x  
+D. x += y  
+
+**答案**: B
+
+**分析**
+```python
+>>> x=y=z=1
+>>> x
+1
+>>> y
+1
+>>> z
+1
+>>> x=(y=z+1)
+  File "<stdin>", line 1
+    x=(y=z+1)
+        ^
+SyntaxError: invalid syntax
+
+y = z + 1 赋值结果不会返回值 再=x就会出错
+```
+
+2.下列代码输出为：  
+```python
+str = "Hello, Python"
+suffix = "Python"
+print(str.endwith(suffix, 2))
+```
+
+A. True  
+B. False  
+C. 语法错误  
+D. P  
+
+**答案**: A 
+
+**分析** 
+```python
+查询str.endwith()方法的源码如下
+
+def endswith(self, suffix, start=None, end=None): # real signature unknown; restored from __doc__
+    """
+    S.endswith(suffix[, start[, end]]) -> bool
+
+    Return True if S ends with the specified suffix, False otherwise.
+    With optional start, test S beginning at that position.
+    With optional end, stop comparing S at that position.
+    suffix can also be a tuple of strings to try.
+    """
+    return False
+    
+这个方法是判断字符串是否以指定后缀结尾，如果以指定后缀结尾返回True，否则返回False
+可选参数"start"和"end"为检索字符串的开始于结束位置
+
+举个例子：
+"Hello,Python".endswith("Python", 2)   --> 检索范围为"llo, Python"，返回True
+"Hello,Python".endswith("Python", 6)   --> 检索范围为"Python"，返回True
+"Hello,Python".endswith("Python", 7)   --> 检索范围为"ython"，返回False
+"Hello,Python".endswith("Python", 6, 11)   --> 检索范围为"Pytho"，返回False
+"Hello,Python".endswith("Python", 6, 12)   --> 检索范围为"Python"，返回True
+```
+
+3.下面代码运行后，a、b、c、d四个变量的值，描述错误的是（）  
+
+```python
+import copy
+a = [1, 2, 3, 4, ['a', 'b']]
+b = a
+c = copy.copy(a)
+d = copy.deepcopy(a)
+a.append(5)
+a[4].append('c')
+```
+A. a ==  [1,2, 3, 4, ['a', 'b', 'c'], 5]  
+B. b ==  [1,2, 3, 4, ['a', 'b', 'c'], 5]  
+C. c ==  [1,2, 3, 4, ['a', 'b', 'c']]  
+D. d ==  [1,2, 3, 4, ['a', 'b', ‘c’]]  
+
+**答案**: D
+
+**分析** 
+
++ 直接赋值：就是对象的引用（别名）
++ 浅拷贝（copy）：拷贝父对象，不拷贝对象内部的子对象
++ 深拷贝（deepcopy）：完全拷贝父对象及其子对象
+
+```python
+b = a：赋值引用，a和b都指向同一个对象
+```
+
+![img](https://images2018.cnblogs.com/blog/1186367/201804/1186367-20180414174652446-1871395674.png)  
+
+```python
+b = a.copy()：浅拷贝，a和b都是一个独立的对象，但它们的子对象是指向同一对象（是引用）
+```
+
+![img](https://images2018.cnblogs.com/blog/1186367/201804/1186367-20180414174922385-1333155603.png)  
+
+```python
+b = copy.deepcopy(a)：深拷贝，a和b完全拷贝了父对象和子对象，两者是完全独立的
+```
+
+![img](https://images2018.cnblogs.com/blog/1186367/201804/1186367-20180414175130913-861637706.png)  
+
+```所以d=[1, 2, 3, 4, ['a', 'b']] ，a和b是完全独立的，a的变化不会引起d的变化```  
+
+
+4.what gets printed?（）  
+
+```python
+kvps = { '1' : 1, '2' : 2 }
+theCopy = kvps.copy()
+kvps['1'] = 5
+sum = kvps['1'] + theCopy['1']
+print sum
+```
+
+A. 1  
+B. 2  
+C. 6  
+D. 10  
+E. An exception is thrown  
+
+**答案**: C
+
+**分析**
+
+```copy是浅拷贝，因为kvps和theCopy的父对象是相互独立的，子对象是指向同一对象的，因此父对象kvps['1'] = 5, theCopy['1'] = 1。这里的子对象指的是父对象中的二级对象```  
+
+5.下列表达式的值为True的是（）  
+
+A. 5 + 4j > 2 - 3j  
+B. 3 > 2 > 2  
+C. (3, 2) < ('a', 'b')  
+D. 'abc' > 'xyz'  
+
+**答案**： C（在Python2中，Python3中没有答案）
+
+**分析**
+
+```python
+A：无论是在Python2还是Python3，复数都不支持比较大小，Python3会抛出以下错误：
+TypeError: '>' not supported between instances of 'complex' and 'complex'
+
+B：3 > 2 > 2，Python2和Python3都支持连续比较，相当于 3 > 2 and 2 > 2，后一个判断式为False，所以整个表达式都为False
+
+C：Python2中支持数字和字符串之间的比较，而Python3不支持，会报以下错误：
+TypeError: '<' not supported between instances of 'int' and 'str'
+
+tuple的比较是从两者的第一个元素的ASCII码开始，直到两个元素不相等为止，若前面元素都相等，则元素个数多的tuple较大
+(1,9) < (2,3) # True
+(8,9) < (1,2,3) # False
+(1,2,3) == (1,2,3) # True
+(3,2) < ('a','b') # True
+
+D：字符串的比较与tuple类似，也是从第一个字符开始比较ASCII码，直到两个字符不相等为止，字母与数字的ASCII码大小范围是"a-z">"A-Z">"0-9"，D中"a"<"x"，因此为False
+```
+
+6.以下程序要求用户输入二进制数字0/1并显示之，请指出程序中代码第几行存在错误（）
+```python
+1	.bit = input("Enter a binary digit:")
+2.	if bit = 0 or 1:
+3.    print "your input is" ,bit
+4.	else
+5.    print "your input is invalid"
+```
+
+A. 4  
+B. 5  
+C. 3  
+D. 2  
+
+**答案**: A D
+
+**分析**
+```python
+在Python2中
+	input()只能接收"数字"的输入，在对待纯数字输入时具有自己的特性，它返回所输入的数字的类型(int，float)
+	raw_input()将所有输入作为字符串看待，返回字符串类型
+	
+在Python3中
+	只有input()，其接收任意输入，将所有输入默认为字符串处理，并返回字符串类型
+	
+	
+本题中根据print来看是Python2
+
+第2行应该是 if bit == 0 or bit == 1:
+千万不能写成：if bit == 0 or 1: #相当于 if (bit == 0) or 1:这个语句不管bit为何值，都恒为真
+
+第4行else少了: 
+```
 
 
 
@@ -458,3 +663,13 @@ getsockname()返回当前套接字的地址
 
 
 
+
+
+
+
+
+
+
+```
+
+```
