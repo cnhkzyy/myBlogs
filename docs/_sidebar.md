@@ -3,6 +3,7 @@
   +   [DRF-序列化反序列化-113.md](Django测试开发/DRF-序列化反序列化-113.md) 
   +   [DRF-字段校验-114.md](Django测试开发/DRF-字段校验-114.md) 
   +    [DRF-创建更新-114.md](Django测试开发/DRF-创建更新-114.md) 
+  +     [DRF-模型类序列化器-114.md](Django测试开发/DRF-模型类序列化器-114.md) 
 - Python接口自动化
   +   [requests实现接口自动化（一）.md](Python接口自动化/requests实现接口自动化（一）.md) 
   +   [requests实现接口自动化（二）.md](Python接口自动化/requests实现接口自动化（二）.md) 
