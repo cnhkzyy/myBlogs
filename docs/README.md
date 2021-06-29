@@ -1,3 +1,3 @@
 # Blogs
 
-> [GitHub](https://github.com/cnhkzyy)
+> [参考The Nuo Site](https://thenuo.gitee.io/the-nuo/)
