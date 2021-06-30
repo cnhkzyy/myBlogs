@@ -4,6 +4,7 @@
   +  [DRF-字段校验.md](Django测试开发/DRF-字段校验.md) 
   +  [DRF-创建更新.md](Django测试开发/DRF-创建更新.md) 
   +  [DRF-模型序列化器.md](Django测试开发/DRF-模型序列化器.md) 
+  +   [APIView.md](Django测试开发/APIView.md) 
   
 - Python接口自动化
   +   [requests实现接口自动化（一）.md](Python接口自动化/requests实现接口自动化（一）.md) 
