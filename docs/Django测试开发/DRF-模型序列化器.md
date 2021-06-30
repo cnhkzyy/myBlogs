@@ -125,7 +125,7 @@ class ProjectModelSerializer(serializers.ModelSerializer):
         #read_only_fields = ('leader', 'tester')
         extra_kwargs = {
             'leader': {
-                'error_message': {
+                'error_messages': {
                     'max_length': '长度不能超过50个字节',
                     'min_length': '长度不能少于6个字节'}
             }
@@ -149,8 +149,8 @@ class ProjectModelSerializer(serializers.ModelSerializer):
         #read_only_fields = ('leader', 'tester')
         extra_kwargs = {
             'leader': {
-                'write_only': True
-                'error_message': {
+                'write_only': True,
+                'error_messages': {
                     'max_length': '长度不能超过50个字节',
                     'min_length': '长度不能少于6个字节'}
             }
