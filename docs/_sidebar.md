@@ -6,15 +6,14 @@
   +  [DRF-模型序列化器.md](Django测试开发/DRF-模型序列化器.md) 
   +   [DRF-APIView.md](Django测试开发/DRF-APIView.md) 
   +    [DRF-GenericAPIView.md](Django测试开发/DRF-GenericAPIView.md) 
-  
 - Python接口自动化
   +   [requests实现接口自动化（一）.md](Python接口自动化/requests实现接口自动化（一）.md) 
   +   [requests实现接口自动化（二）.md](Python接口自动化/requests实现接口自动化（二）.md) 
   +   [requests实现接口自动化（三）.md](Python接口自动化/requests实现接口自动化（三）.md) 
-  
+- Git
+  +  [git常用命令.md](Git/git常用命令.md) 
 - 牛客网错题集
   + [python专项练习.md](牛客网错题集/python专项练习.md) 
-  
 - Jmeter
   +  [jmeter参数化.md](Jmeter/jmeter参数化.md) 
   +  [jmeter连接mysql时区报错.md](Jmeter/jmeter连接mysql时区报错.md) 
