@@ -224,3 +224,226 @@ min_length=5,class ProjectModelSerializer(serializers.ModelSerializer):
 ### 更新id为1的项目
 
 ![image-20210701005906470](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210701005906470.png)
+
+
+
+## 排序
+
+### 单个视图指定排序
+
+```python
+from rest_framework.filters import OrderingFilter
+
+class ProjectsList(GenericAPIView):
+
+    #1.指定查询集
+    queryset = Projects.objects.all()
+    #2.指定序列化器类
+    serializer_class = ProjectModelSerializer
+
+    #3.在视图类中指定过滤引擎，这里使用的是排序过滤
+    filter_backends = [OrderingFilter]
+    #4.指定需要排序的字段
+    ordering_fields = ['name', 'leader']
+
+
+    def get(self, request):
+        #5.使用get_queryset获取查询集
+        project_qs = self.get_queryset()
+        #6.使用filter_queryset方法过滤查询集
+        project_qs = self.filter_queryset(project_qs)
+        #如果返回的是列表数据(多条数据)时，需要添加many=True这个参数
+        serializer = self.get_serializer(instance=project_qs, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+```
+
+在命令行运行
+
+```python
+#根据name升序排列
+http -v :8000/index/?ordering=name
+    
+#根据name倒序排列
+http -v :8000/index/?ordering=-name
+```
+
+
+
+### 全局指定排序
+
+settings.py
+
+```python
+# 在全局settings.py中指定排序引擎
+# 配置DRF
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': [
+        'rest_framework.filters.OrderingFilter'
+    ],
+}
+```
+
+views.py
+
+```python
+    #3.在视图类中指定过滤引擎，这里使用的是排序过滤。在全局指定后不需要在这里指定filter_backends
+    #filter_backends = [filters.OrderingFilter]
+    #4.指定需要排序的字段
+    ordering_fields = ['name', 'leader']
+```
+
+
+
+## 过滤
+
+### 单个视图指定过滤
+
+安装过滤模块
+
+```python
+pip install django-filter
+```
+
+settings.py
+
+```python
+INSTALLED_APPS = [
+    'django_filters'
+]
+```
+
+views.py
+
+```python
+from django_filters.rest_framework.backends import DjangoFilterBackend
+
+class ProjectsList(GenericAPIView):
+	#1.指定查询集
+    queryset = Projects.objects.all()
+    #2.指定序列化器类
+    serializer_class = ProjectModelSerializer
+    #3.在类视图中指定过滤引擎
+    filter_backends = [DjangoFilterBackend]
+    #4.指定需要过滤的字段
+    filterset_fields = ['name', 'leader', 'tester']
+```
+
+在命令行运行
+
+```python
+#查询name为beck的项目
+http -v :8000/index/ leader==beck
+```
+
+
+
+### 全局指定过滤
+
+settings.py
+
+```python
+# 在全局settings.py中指定过滤引擎
+# 添加应用
+INSTALLED_APPS = [
+    'django_filters',
+]
+# 配置DRF
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': [
+   'django_filters.rest_framework.backends.DjangoFilterBackend'
+    ],
+}
+```
+
+views.py
+
+```python
+	#5.在类视图中指定过滤引擎
+    #filter_backends = [DjangoFilterBackend]
+
+    #6.指定需要过滤的字段
+    filterset_fields = ['name', 'leader', 'tester']
+```
+
+
+
+## 排序
+
+指定分页引擎：pagination_class
+
+settings.py
+
+```python
+#在全局settings.py中指定分页引擎
+#配置DRF
+REST_FRAMEWORK = {
+    # 使用默认的分页引擎
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    # 指定每页展示数据的条数
+    'PAGE_SIZE': 3,
+}
+```
+
+先过滤后分页
+
+get_queryset()：获取查询集
+
+filter_queryset()：对查询集进行过滤，并返回一个查询集
+
+paginate_queryset()：对查询集进行分页
+
+```python
+class ProjectsList(GenericAPIView):
+
+    #1.指定查询集
+    queryset = Projects.objects.all()
+    #2.指定序列化器类
+    serializer_class = ProjectModelSerializer
+
+    #3.在视图类中指定过滤引擎，这里使用的是排序过滤。在全局指定后不需要在这里指定filter_backends
+    #filter_backends = [filters.OrderingFilter]
+    #4.指定需要排序的字段
+    ordering_fields = ['name', 'leader']
+
+    #5.在类视图中指定过滤引擎
+    #filter_backends = [DjangoFilterBackend]
+
+    #6.指定需要过滤的字段
+    filter_fields = ['name', 'leader', 'tester']
+
+
+    def get(self, request):
+        #5.使用get_queryset获取查询集
+        project_qs = self.get_queryset()
+        #6.使用filter_queryset方法过滤查询集
+        project_qs = self.filter_queryset(project_qs)
+
+        #使用paginate_queryset来进行分页，然后返回分页之后的查询集
+        page = self.paginate_queryset(project_qs)
+
+        #存在settings中不使用引擎的情况
+        if page is not None:
+            serializer = self.get_serializer(instance=page, many=True)
+            #可以使用get_paginated_response方法返回
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(instance=project_qs, many=True)
+        return Response(serializer.data)
+```
+
+在命令行运行，查询任意一个项目列表
+
+```python
+http -v :8000/index/ leader==beck
+```
+
+![image-20210702233425889](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210702233425889.png)
+
+指定page，获取第二页的数据
+
+```python
+http -v :8000/index/ leader==beck page==2
+```
+
+![image-20210702233628627](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210702233628627.png)
+
+ 
