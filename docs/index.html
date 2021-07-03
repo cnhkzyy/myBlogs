@@ -12,6 +12,9 @@
   <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk/dist/gitalk.css">
   <link rel="stylesheet" href="//unpkg.com/gitalk/dist/gitalk.css">
   <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify-dark-mode@latest/dist/style.min.css"/>
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify-sidebar-collapse/dist/sidebar.min.css" />
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify-sidebar-collapse/dist/sidebar-folder.min.css" />
+
   <script>
       var _hmt = _hmt || [];
       (function() {
@@ -38,6 +41,11 @@
       repo: 'https://github.com/cnhkzyy/myBlogs',
 	  auto2top: true,
       loadSidebar: true ,
+	  alias: {
+      '/.*/_sidebar.md': '/_sidebar.md',
+	  },
+     subMaxLevel: 3,
+     sidebarDisplayLevel: 1
       coverpage: true,
 	  maxLevel: 4,
       subMaxLevel: 2,
@@ -102,6 +110,8 @@
   <script src="//unpkg.com/docsify-count/dist/countable.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docsify-progress@latest/dist/progress.min.js"></script>
   <script src="//cdn.jsdelivr.net/npm/docsify-dark-mode@latest/dist/index.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/docsify-sidebar-collapse/dist/docsify-sidebar-collapse.min.js"></script>
+
 
 
 
