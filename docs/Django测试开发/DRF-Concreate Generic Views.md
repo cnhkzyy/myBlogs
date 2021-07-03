@@ -87,3 +87,12 @@ class ProjectsDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ProjectModelSerializer
 ```
 
+
+
+## 痛点
+
+列表视图和详情视图无法合并
+
+两个类视图中，有相同的get方法，会冲突
+
+两个类视图所对应的url地址不一致
