@@ -367,7 +367,9 @@ views.py
 
 
 
-## 排序
+## 分页
+
+### 全局指定分页-使用默认分页引擎
 
 指定分页引擎：pagination_class
 
@@ -447,3 +449,62 @@ http -v :8000/index/ leader==beck page==2
 ![image-20210702233628627](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210702233628627.png)
 
  
+
+### 全局指定分页-使用自定义分页引擎
+
+创建一个新目录utils，用于存放自定义模块，继承PageNumberPagination，重新定义分页引擎
+
+当自定义分页引擎与settings.py中分页引擎同时存在时，自定义的优先级更高
+
+utils/pagination.py
+
+```python
+from rest_framework.pagination import PageNumberPagination
+
+class PageNumberPaginationManual(PageNumberPagination):
+    page_query_param = 'p'
+    #默认情况下，每一页显示的条数为2
+    page_size = 2
+    # 设置每页显示的数据条数的查询字符串key名称，不设置则无法指定每页显示的数据量
+    page_size_query_param = 's'
+    #指定前端能分页的最大的page_size
+    max_page_size = 50
+```
+
+settings.py
+
+```python
+
+REST_FRAMEWORK = {
+    #使用自定义的分页引擎
+    'DEFAULT_PAGINATION_CLASS': 'utils.pagination.PageNumberPaginationManual',
+}
+```
+
+获取第5页的数据，每页展示2条
+
+```python
+http -v :8000/index/?p=5
+```
+
+![image-20210703132241274](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210703132241274.png)
+
+获取第5页的数据，每页展示3条
+
+```python
+http://localhost:8000/index/?p=4&s=3
+```
+
+![image-20210703132401361](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210703132401361.png)
+
+### 单个视图指定分页-使用自定义分页引擎
+
+views.py的ProjectsList类的get方法
+
+```python
+from utils.pagination import PageNumberPaginationManual
+
+ 	#7.在某个视图中指定分页类
+    pageination_class = PageNumberPaginationManual
+```
+
