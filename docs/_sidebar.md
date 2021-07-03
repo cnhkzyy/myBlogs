@@ -1,3 +1,4 @@
+- [home.md](home.md) 
 - Django测试开发
   +  [创建接口的任务.md](Django测试开发/创建接口的任务.md) 
   +  [DRF-序列化器.md](Django测试开发/DRF-序列化器.md) 
@@ -8,7 +9,6 @@
   +  [DRF-GenericAPIView.md](Django测试开发/DRF-GenericAPIView.md) 
   +  [DRF-Mixin.md](Django测试开发/DRF-Mixin.md) 
   +  [DRF-Concreate_Generic_Views.md](Django测试开发/DRF-Concreate_Generic_Views.md)
-
 - Python接口自动化
   +   [requests实现接口自动化（一）.md](Python接口自动化/requests实现接口自动化（一）.md) 
   +   [requests实现接口自动化（二）.md](Python接口自动化/requests实现接口自动化（二）.md) 
