@@ -6,6 +6,7 @@
   +  [DRF-模型序列化器.md](Django测试开发/DRF-模型序列化器.md) 
   +   [DRF-APIView.md](Django测试开发/DRF-APIView.md) 
   +    [DRF-GenericAPIView.md](Django测试开发/DRF-GenericAPIView.md) 
+  +     [Mixin.md](Django测试开发/Mixin.md) 
 - Python接口自动化
   +   [requests实现接口自动化（一）.md](Python接口自动化/requests实现接口自动化（一）.md) 
   +   [requests实现接口自动化（二）.md](Python接口自动化/requests实现接口自动化（二）.md) 
