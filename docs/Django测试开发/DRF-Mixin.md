@@ -2,13 +2,13 @@
 
 + RetrieveModelMixin
 
-  提供 retrieve(request, *args, **kwargs) 方法，获取详情数据
+  提供 retrieve(request, *args, **kwargs) 方法，获取详情数据(一条数据)
 
   获取成功，返回 200 OK，否则返回 404 Not Found
 
 - ListModelMixin
 
-  提供 list(request, *args, **kwargs) 方法，获取列表数据
+  提供 list(request, *args, **kwargs) 方法，获取列表数据(获取多条数据)
 
   获取成功，返回 200 OK，否则返回 404 Not Found
 
@@ -16,7 +16,7 @@
 
   提供 create(request, *args, **kwargs) 方法，创建数据
 
-  获取成功，返回 200 OK；请求参数有误，返回 400 Bad Request
+  获取成功，返回 201 OK；请求参数有误，返回 400 Bad Request
 
 - UpdateModelMixin
 
@@ -24,7 +24,7 @@
 
   提供 partial_update(request, *args, **kwargs) 方法，部分更新，支持PATCH方法
 
-  更新成功，返回 200 OK
+  更新成功(更新一条记录)，返回 200 OK
 
   请求参数有误，返回 400 Bad Request；不存在，返回 404 Not Found
 

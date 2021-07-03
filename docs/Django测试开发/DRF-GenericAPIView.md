@@ -19,13 +19,14 @@
 
  4）提供的方法
 
-| 方法              | 作用                               |
-| ----------------- | ---------------------------------- |
-| get_object        | 返回模型类数据对象（单条详情数据） |
-| get_queryset(qs)  | 返回查询集                         |
-| get_serializer    | 返回序列化器对象                   |
-| filter_queryset   | 对查询集进行过滤                   |
-| paginate_queryset | 对查询集进行分页                   |
+| 方法                 | 作用                                               |
+| -------------------- | -------------------------------------------------- |
+| get_object           | 返回模型类数据对象（单条详情数据）                 |
+| get_queryset(qs)     | 返回查询集                                         |
+| get_serializer       | 返回序列化器对象                                   |
+| get_serializer_class | 返回序列化器类，默认返回serializer_class，可以重写 |
+| filter_queryset      | 对查询集进行过滤                                   |
+| paginate_queryset    | 对查询集进行分页                                   |
 
 ## 使用GenericAPIView类
 
