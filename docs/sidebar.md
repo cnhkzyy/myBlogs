@@ -1,4 +1,3 @@
-  +  [home.md](home.md) 
 - Django测试开发
   +  [创建接口的任务.md](Django测试开发/创建接口的任务.md) 
   +  [DRF-序列化器.md](Django测试开发/DRF-序列化器.md) 
@@ -20,5 +19,3 @@
 - Jmeter
   +  [jmeter参数化.md](Jmeter/jmeter参数化.md) 
   +  [jmeter连接mysql时区报错.md](Jmeter/jmeter连接mysql时区报错.md) 
-
-
