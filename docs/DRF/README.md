@@ -1578,3 +1578,208 @@ class ProjectsDetail(generics.RetrieveUpdateDestroyAPIView):
 两个类视图中，有相同的get方法，会冲突
 
 两个类视图所对应的url地址不一致
+
+
+
+## ViewSet
+
+
+
+### 介绍
+
+继承ViewSetMixin和Views.APIView
+
+ViewSet不再支持get、post、put、delete等请求方法，只支持action动作
+
+未提供get_object()、get_serializer()、queryset、serializer_class等
+
+所以需要继承GenericViewSet
+
+
+
+### 支持的动作
+
+| 请求方法 | 动作           | 描述                 |
+| -------- | -------------- | -------------------- |
+| GET      | retrieve       | 获取详情数据（单条） |
+| GET      | list           | 获取列表数据（多条） |
+| POST     | create         | 创建数据             |
+| PUT      | update         | 更新数据             |
+| PATCH    | partial_update | 部分更新             |
+| DELTE    | destory        | 删除数据             |
+
+
+
+
+
+## GenericViewSet
+
+### 介绍
+
+继承ViewSetMixin和generics.GenericAPIView
+
+提供get_object()、get_serializer()、queryset、serializer_class等
+
+在定义路由时，需将请求方法与action动作进行绑定
+
+使用Mixins类简化程序
+
+
+
+### ViewSet与GenericViewSet的区别
+
+| ViewSet                                                      | GenericViewSet                                               |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| 继承：(ViewSetMixin, Views.APIView)                          | 继承：(ViewSetMixin, generics.GenericAPIView)                |
+| 未提供通用View的方法集：get_object()、get_serializer()、queryset、serializer_class等 | 包含基本的通用View的方法集：get_object()、get_serializer()、queryset、serializer_class等 |
+| 支持action动作                                               | 在定义路由时，需将请求方法与action动作进行映射               |
+
+
+
+### 示例
+
+views.py
+
+```python
+from rest_framework import viewsets
+
+#APIView
+#GenericAPIView
+#ViewSet不再支持get、post、put、delete等请求方法，只支持action动作
+#但是ViewSet这个类中未提供get_object()、get_serializer()等方法
+#所以需要继承GenericViewSet
+class ProjectsViewSet(viewsets.GenericViewSet):
+    queryset = Projects.objects.all()
+    serializer_class = ProjectModelSerializer
+
+    ordering_fields = ['name', 'leader']
+    filter_fields = ['name', 'leader', 'tester']
+
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+```
+
+projects/urls.py
+
+其中name为给路由起的别名
+
+```python
+ path('', views.ProjectsViewSet.as_view({
+        'get': 'list',
+        'post': 'create',
+    }), name='projects-list'),
+    path('<int:pk>/', views.ProjectsViewSet.as_view({
+        'get': 'retrieve',
+        'put': 'update',
+        'delete': 'destroy'
+    }))
+```
+
+
+
+## 使用Mixin和GenericViewSet
+
+### 原因
+
+由于Mixin中封装了list、retrieve、update、destroy、create等方法，因此可以直接继承Mixin
+
+GenericViewSet有get_object()、get_serializer()、queryset、serializer_class等方法
+
+
+
+### 示例
+
+views.py
+
+```python
+from rest_framework import mixins
+from rest_framework import viewsets
+
+class ProjectsViewSet(mixins.ListModelMixin,
+                      mixins.UpdateModelMixin,
+                      mixins.RetrieveModelMixin,
+                      mixins.DestroyModelMixin,
+                      mixins.CreateModelMixin,
+                      viewsets.GenericViewSet):
+    queryset = Projects.objects.all()
+    serializer_class = ProjectModelSerializer
+    ordering_fields = ['name', 'leader']
+    filter_fields = ['name', 'leader', 'tester']
+```
+
+
+
+### 痛点
+
+有没有一个类能继承这些类呢？
+
+
+
+## ModelViewSet
+
+### 介绍
+
+继承自GenericAPIVIew，同时继承了ListModelMixin、RetrieveModelMixin、CreateModelMixin、UpdateModelMixin、DestoryModelMixin
+
+支持的Action
+
+列表视图：list、create
+
+详情视图： retrieve、 update、destory
+
+
+
+### 示例
+
+views.py
+
+```python
+from rest_framework import viewsets
+
+class ProjectsViewSet(viewsets.ModelViewSet):
+    queryset = Projects.objects.all()
+    serializer_class = ProjectModelSerializer
+    ordering_fields = ['name', 'leader']
+    filter_fields = ['name', 'leader', 'tester']
+```
+
