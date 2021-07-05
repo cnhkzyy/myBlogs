@@ -1783,3 +1783,219 @@ class ProjectsViewSet(viewsets.ModelViewSet):
     filter_fields = ['name', 'leader', 'tester']
 ```
 
+
+
+## Action
+
+### 介绍
+
+可以使用action装饰器来声明自定义的动作
+
+action装饰器：@action(methods, detail)
+
+methods：支持的请求方式
+
+默认值为['get']，可定义多个请求方式['get', 'post', 'put']
+
+detail：声明要处理的是否是详情资源对象（通过url路径获取主键，url是否需要传递pk键值）
+
+True 表示使用通过URL获取的主键对应的数据对象
+
+False 表示不使用URL获取主键
+
+
+
+### 示例
+
+1.获取所有的项目名
+
+serializer.py
+
+```python
+class ProjectsNameSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Projects
+        fields = ('id', 'name')
+```
+
+views.py
+
+```python
+from projects.serializer import ProjectsNameSerializer
+
+class ProjectsViewSet(viewsets.ModelViewSet):
+    queryset = Projects.objects.all()
+    serializer_class = ProjectModelSerializer
+    ordering_fields = ['name', 'leader']
+    filter_fields = ['name', 'leader', 'tester']
+
+
+    #需求：获取所有的项目名
+    #1.可以使用action装饰器来声明自定义的动作
+    #默认情况下，实例方法名就是动作名
+    #methods参数用于指定该动作支持的请求方法，默认为get
+    #detail参数用于指定该动作要处理的是否为详情资源对象(url是否需要传递pk键值)
+    @action(methods=['get'], detail=False)
+    def names(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = ProjectsNameSerializer(instance=queryset, many=True)
+        return Response(serializer.data)
+```
+
+projects/urls.py
+
+```python
+urlpatterns = [
+	path('names/', views.ProjectsViewSet.as_view({
+            'get': 'names',
+        }), name='projects-names')
+]
+```
+
+2.获取某个项目id下的所有接口
+
+serializer.py
+
+```python
+from interfaces.models import Interfaces
+
+
+class InterfaceNameSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Interfaces
+        fields = ('id', 'name', 'tester')
+
+
+
+class InterfacesByProjectIdSerializer(serializers.ModelSerializer):
+    interfaces_set = InterfaceNameSerializer(read_only=True, many=True)
+
+    class Meta:
+        model = Projects
+        fields = ('id', 'interfaces_set')
+```
+
+views.py
+
+```python
+    from projects.serializer import InterfacesByProjectIdSerializer
+    
+    #获取某个项目id下的所有接口
+    @action(detail=False)
+    def interfaces(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = InterfacesByProjectIdSerializer(instance=instance)
+        return Response(serializer.data)
+```
+
+projects/urls.py
+
+```python
+urlpatterns = [
+    path('<int:pk>/interfaces/', views.ProjectsViewSet.as_view({
+            'get': 'interfaces',
+        }))
+]
+```
+
+
+
+## Router
+
+
+
+### ### 介绍
+
+为了简化路由定义，需要使用注册路由
+
+
+
+### 步骤
+
+1.创建SimpleRouter路由对象
+
+2.注册路由
+
+3.将自动生成的路由，添加到urlpatterns中
+
+
+
+### SimpleRouter示例
+
+这里为了演示起见，做一些修改
+
+study_django/urls.py
+
+```python
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', include('projects.urls')),
+]
+```
+
+projects/urls.py
+
+方法一：
+
+```python
+from django.urls import path, include
+from rest_framework import routers
+from projects import views
+
+#1.创建SimpleRouter路由对象
+router = routers.SimpleRouter()
+#2.注册路由
+#第一个参数prefix为路由前缀，一般添加应用名即可
+#第二个参数viewset为视图集，不要加as_view()
+router.register(r'projects', views.ProjectsViewSet)
+
+urlpatterns = [
+    #3.将自动生成的路由，添加到urlpatterns中
+    #path('', include(router.urls))
+]
+```
+
+方法二：
+
+第3步可修改为
+
+```python
+urlpatterns += router.urls
+```
+
+在浏览器中运行
+
+![image-20210706002917489](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210706002917489.png)
+
+之前我们定义的路由
+
+![image-20210706002623508](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210706002623508.png)
+
+
+
+### @action中url_path与url_name的作用
+
+在names的@action中定义url_path为'nm'，url_name为'url_name'
+
+![image-20210706003100797](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210706003100797.png)
+
+可以看到，如果有定义url_path，则路径为定义的url_path，而不是默认的action name
+
+如果有定义url_name，则别名为项目名-定义的url_name，而不是默认的项目名-默认的action name
+
+![image-20210706003315887](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210706003315887.png)
+
+
+
+### DefaultRouter示例
+
+将router改为DefaultRouter()
+
+```python
+router = routers.DefaultRouter()
+```
+
+运行后发现定义了一个根路由
+
+![image-20210706003821240](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210706003821240.png)
+
