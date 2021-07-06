@@ -2049,7 +2049,7 @@ urlpatterns = [
 
 
 
-### 添加注释
+#### 添加注释
 
 单一方法的视图
 
@@ -2093,15 +2093,15 @@ post: 新建项目
 
 
 
-## 使用drf-yasg
+### 使用drf-yasg
 
-### 安装
+#### 安装
 
 ```python
 pip install drf-yasg
 ```
 
-### 添加到子应用
+#### 添加到子应用
 
 settings.py
 
@@ -2109,7 +2109,7 @@ settings.py
 INSTALLED_APPS = [ 'drf_yasg', ]
 ```
 
-### 配置urls
+#### 配置urls
 
 study_django/urls.py
 
