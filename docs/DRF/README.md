@@ -1997,3 +1997,158 @@ router = routers.DefaultRouter()
 
 ![image-20210706003821240](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210706003821240.png)
 
+
+
+## 生成API文档
+
+
+
+### 简介
+
+生成API文档平台
+
+自动生成测试代码
+
+支持接口测试
+
+
+
+### 安装
+
++ coreapi（必须）
++ Pygments（可选）
++ Markdown（可选）
+
+
+
+### 使用coreapi
+
+最新版的DRF(>=3.10)中，需要添加如下配置
+
+settings.py
+
+```python
+#指定用于支持coreapi的Schema
+REST_FRAMEWORK = {
+	'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
+}
+```
+
+study_django/urls.py
+
+```python
+from rest_framework.documentation import include_docs_urls
+
+from django.urls import path, include
+urlpatterns = [
+	path('docs/', include_docs_urls(title='接口测试文档',  description='这是一个接口文档平台')),
+]
+```
+
+![image-20210706231638404](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210706231638404.png)
+
+
+
+### 添加注释
+
+单一方法的视图
+
+```python
+# 直接在视图类中添加注释
+class ProjectsListView(ListAPIView): 
+""" 返回所有项目信息 """
+```
+
+多个方法的视图
+
+```python
+class ProjectsListCreateView(ListCreateAPIView): 
+""" 
+get: 返回所有项目信息 
+post: 新建项目 
+"""
+```
+
+视图集
+
+```python
+ class ProjectsViewset(viewsets.ModelViewSet):
+  """ 
+ create: 创建项目 
+ retrieve: 获取项目详情数据 
+ update: 完整更新项目 
+ partial_update: 部分更新项目 
+ destroy: 删除项目 
+ list: 获取项目列表数据 
+ names: 获取所有项目名称 
+ interfaces: 获取指定项目的所有接口数据
+  """
+```
+
+![image-20210707001617428](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210707001617428.png)
+
+这里的参数的Description信息实际上是serializer.py中继承serializers.ModelSerializer时，根据model.py中的Projects类中字段的help_text信息生成的
+
+![image-20210707002012362](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210707002012362.png)
+
+
+
+## 使用drf-yasg
+
+### 安装
+
+```python
+pip install drf-yasg
+```
+
+### 添加到子应用
+
+settings.py
+
+```python
+INSTALLED_APPS = [ 'drf_yasg', ]
+```
+
+### 配置urls
+
+study_django/urls.py
+
+```python
+from django.urls import path, include, re_path
+from drf_yasg import openapi 
+from drf_yasg.views import get_schema_view 
+
+# 声明schema_view
+schema_view = get_schema_view( 
+    openapi.Info( 
+        title="Lemon API接口文档平台", # 必传 
+        default_version='v1', # 必传 
+        description="这是一个美轮美奂的接口文档", 
+        terms_of_service="http://api.hello.site", 
+contact=openapi.Contact(email="123456@qq.com"),
+        license=openapi.License(name="BSD License"), 
+),
+    public=True, 
+)
+
+# 设置urlpatterns
+urlpatterns = [ 
+    re_path(r'^swagger(?P<format>\.json|\.yaml)$', 
+schema_view.without_ui(cache_timeout=0), name='schema-json'), 
+    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'), 
+    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema- redoc'), ]
+```
+
+通过http://127.0.0.1:8000/swagger.json访问
+
+![image-20210707004452598](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210707004452598.png)
+
+通过http://127.0.0.1:8000/swagger.yaml会自动下载yaml文件
+
+通过http://127.0.0.1:8000/swagger/访问
+
+![image-20210707004618661](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210707004618661.png)
+
+通过http://127.0.0.1:8000/redoc/访问
+
+![image-20210707004744107](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210707004744107.png)
