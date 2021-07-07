@@ -4,9 +4,11 @@
 
 ## Django
 
+Django基础 [文档](/Django基础/)
+
 Django Rest Framework [文档](/DRF/)
 
-Django基础 [文档](/Django基础/)
+
 
 
 

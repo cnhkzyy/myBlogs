@@ -2,7 +2,7 @@
 
 - Django
 	
-	-  [Django](/Django基础/) 
+	-  [Django基础](/Django基础/) <br/>
 
 	-  [DRF](/DRF/) 
 	
