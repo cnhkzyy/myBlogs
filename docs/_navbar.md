@@ -2,8 +2,8 @@
 
 - Django
 	
-	+  [Django基础](/Django基础/) 
-	
+	-  [Django基础](/Django基础/) 
+
 	-  [DRF](/DRF/) 
 	
 - 自动化测试
