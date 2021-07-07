@@ -6,6 +6,8 @@
 
 Django Rest Framework [文档](/DRF/)
 
+Django基础 [文档](/Django基础/)
+
 
 
 ## 自动化测试
