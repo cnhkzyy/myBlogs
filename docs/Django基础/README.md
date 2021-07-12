@@ -60,6 +60,7 @@ Flask
 ### 3.创建项目
 
 + ```django-admin startproject 项目名```
++ 注意如果在pycharm的工程下创建同名的项目，要加一个点```django-admin startproject 项目名 .```
 
 ### 4.运行项目
 
@@ -343,13 +344,55 @@ urlpatterns = [
 
 如：ip:port/index/?name=Tim&age=18  url后面的?参数，可以使用request.GET获取，返回QueryDict对象，可通过request.GET[key]、request.GET.get(key)、request.GET.getlist()获取参数值
 
+**示例1**
+
+pycharm打开debug模式，在浏览器中请求http://127.0.0.1:8000/projects?name=beck&age=29
+
+![image-20210712233255424](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210712233255424.png)
+
+![image-20210712233423255](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210712233423255.png)
+
+![image-20210712233538475](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210712233538475.png)
+
+**示例2**
+
+查询字符串中如果有相同的key，后面的值会覆盖前面的值
+
+比如在浏览器中请求：http://127.0.0.1:8000/projects/?name=beck&age=29&name=Tim
+
+![image-20210712234030121](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210712234030121.png)
+
+![image-20210712234105464](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210712234105464.png)
+
+**示例3**
+
+如果要获取多个相同key值的value，可以使用getlist('name')方法
+
+![image-20210712234211308](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210712234211308.png)
+
 2）请求体参数
 
  **form表单传参**
 
 使用request.POST方法，获取application/x-www-form-urlencoded类型的参数
 
- **json格式参数**
+**示例1**
+
+pycharm打开debug模式，使用postman发送一个post请求
+
+![image-20210712235111723](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210712235111723.png)
+
+![image-20210712235149112](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210712235149112.png)
+
+![image-20210712235248899](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210712235248899.png)
+
+![image-20210712235354514](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210712235354514.png)
+
+或者使用request.POST.get('name')来获取name的值
+
+![image-20210712235515753](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210712235515753.png)
+
+**json格式参数**
 
 使用request.body方法，获取application/json类型的参数
 
