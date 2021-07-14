@@ -396,21 +396,69 @@ pycharm打开debug模式，使用postman发送一个post请求
 
 使用request.body方法，获取application/json类型的参数
 
- **上传文件**
+**示例1**
 
-使用request.body方法，获取到文件的二进制格式数据,新建一个文件写入
+pycharm打开debug模式，使用postman发送一个post请求
+
+![image-20210714221142710](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210714221142710.png)
+
+![image-20210714221332741](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210714221332741.png)
+
+获取json格式数据，并转化为python对象
+
+```python
+ def post(self, request):
+        #1.json格式的数据存放在body中，可以使用request.body来获取
+        import json
+        #2.将bytes类型转化为字符串
+        one_str = request.body.decode('utf-8')
+        #3.json格式的字符串转化为字典
+        one_dict = json.loads(one_str)
+        print(one_str)
+        print(type(one_dict))
+        print(one_dict['name'])
+
+        return HttpResponse("<h1>POST请求：Hello, Python测试</h1>")
+```
+
+![image-20210714222010794](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210714222010794.png)
+
+**上传文件**
+
+使用request.FILES方法，获取到文件的二进制格式数据，新建一个文件写入
 
 3）路径参数
 
-如：ip:port/index/10/
+如：127.0.0.1:8000/projects/100/
 
-把参数伪装成路径，传递到后端
++ 把参数伪装成路径，传递到后端
 
-在路由中配置路径：< url类型转换器:路径参数名 > int path uuid slug；请求函数中配置请求参数：def post(self, request, pk)
++ 在路由中配置路径：< url类型转换器:路径参数名 > ，冒号：左边为转换器，右边为参数别名
++ 自带了int、slug、uuid
+
+projects/urls.py
 
 ```python
-path('index04/<int:pk>/<username>/', views.IndexPage.as_view())
+urlpatterns = [
+    #int为路径参数类型转换器，：左边为转换器，右边为参数别名
+    path('<int:pk>/', views.IndexView.as_view()),
+]
 ```
+
+views.py
+
+```python
+    def get(self, request, pk):
+        return HttpResponse("<h1>GET请求：Hello, Python测试</h1>")
+```
+
+pycharm调成debug模式，在浏览器中请求：http://127.0.0.1:8000/projects/100/
+
+![image-20210714224147862](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210714224147862.png)
+
+如果参数不符合类型，则会报404
+
+![image-20210714224348471](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210714224348471.png)
 
 
 
@@ -419,6 +467,43 @@ path('index04/<int:pk>/<username>/', views.IndexPage.as_view())
 视图中必须返回HTTPResponse对象或子对象
 
 HttpResponse(content=响应体, content_type=响应体数据类型, status=状态码) HttpResponse对象 第一个参数为字符串或者字节类型 会将字符串内容返回到前端 jsonResponse
+
+**示例1：HttpReponse**
+
+views.py
+
+```python
+    def get(self, request, pk):
+        import json
+        #HttpResponse第一个参数往往为响应体内容
+        datas = {
+            'name': 'beck',
+            'age': 18
+        }
+        return HttpResponse(content=json.dumps(datas), content_type='application/json', status=201, )
+```
+
+![image-20210714225523689](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210714225523689.png)
+
+**示例2：JsonResponse**
+
+views.py
+
+```python
+from django.http import HttpResponse, JsonResponse
+
+    def get(self, request, pk):
+        import json
+        #HttpResponse第一个参数往往为响应体内容
+        datas = {
+            'name': 'beck',
+            'age': 18
+        }
+        #如果datas是列表的形式，需要给JsonResponse加上参数safe=False
+        return JsonResponse(data=datas)
+```
+
+![image-20210714225843468](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210714225843468.png)
 
 **模板渲染1**
 
