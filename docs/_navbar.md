@@ -4,6 +4,8 @@
 	
 	-  [Django基础](/Django基础/) 
 
+	-  [ORM](/ORM/)
+
 	-  [DRF](/DRF/) 
 	
 - 自动化测试
