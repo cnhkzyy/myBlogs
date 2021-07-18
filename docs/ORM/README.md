@@ -73,6 +73,11 @@ class Person(models.Model):
     #id = models.AutoField(primary_key=True)
     first_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=30)
+    
+    class Meta:
+        db_table = 'tb_person'
+        verbose_name = '人类'
+        verbose_name_plural = '人类'
 
 
 class Projects(models.Model):
@@ -102,5 +107,102 @@ class Projects(models.Model):
 
 ```
 
+## 表与表之间的关系
+
++ 一对一：models.OneToOneField
+
++ 一对多：models.ForeignKey，“一”：父表；“多”：子表、从表。 如：项目表、接口表，一个接口属于一个项目，一个项目拥有多个接口，因此，项目表（一） -- > 接口表（多）
++ 多对多：models.ManyToManyField
+
+使用```python manage.py startapp Interfaces```创建一个Iterfaces的应用，在settings.py的INSTALLED_APPS中加入```interfaces.apps.InterfacesConfig```
+
+settings.py
+
+```python
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'projects.apps.ProjectsConfig',
+    'interfaces.apps.InterfacesConfig',
+]
+```
+
+Interfaces/models.py
+
+```python
+from django.db import models
+
+# Create your models here.
+
+#一个项目中有多个接口
+#那么需要在"多"的一侧创建外键
+#项目表为父表("一")，接口表("多")为子表
+class Interfaces(models.Model):
+    name = models.CharField(verbose_name='接口名称', max_length=200, unique=True, help_text='接口名称')
+    tester = models.CharField(verbose_name='测试人员', max_length=50, help_text='测试人员')
+    desc = models.TextField(verbose_name='简要描述', help_text='简要描述', blank=True, default='', null=True)
+    #第一个参数为关联的模型路径(应用名.模型类)或者模型类(如果使用from projects.models import Projects已经导入的话，第一个参数可以直接写Projects)
+    #第二个参数设置的是，当父表删除之后，该字段的处理方式
+    #CASCADE-->子表也会被删除
+    #SET_NULL-->当前外键值会被设置为None，需要设置null=True
+    #PROJECT-->会报错
+    #SET_DEFAULT-->设置默认值，同时需要指定默认值，null=True
+    #外键字段名称一般为父表模型类名小写。如果创建的外键字段是project，那么在数据表中生成的字段是project_id
+    project = models.ForeignKey('projects.Projects', on_delete=models.CASCADE,
+                                verbose_name='所属项目', help_text='所属项目')
 
 
+    #定义子类Meta，用于设置当前数据模型的元数据信息
+    class Meta:
+        db_table = 'tb_interfaces'
+        verbose_name = '接口'
+        verbose_name_plural = '接口'
+```
+
+## 创建完数据库模型类后，需要迁移才能生成数据表
+
+1.执行python manage.py makemigrations (子应用名) 生成迁移脚本，放在projects/migrations目录中（如果不加子应用名，则会将所有子应用进行迁移）
+
+ 2.执行迁移脚本：python manage.py migrate
+
+## 使用admin站点添加数据
+
+projects/admin.py
+
+```python
+from .models import Projects, Person
+# Register your models here.
+
+admin.site.register(Projects)
+admin.site.register(Person)
+```
+
+使用```python manage.py createsuperuser```创建后台超级用户
+
+```python
+(learn_django) E:\virtual_workshop\learn_django>python manage.py createsuperuser
+用户名 (leave blank to use 'beck'): beck
+电子邮件地址: 123456@qq.com
+Password:
+Password (again):
+密码跟 电子邮件地址 太相似了。
+密码长度太短。密码必须包含至少 8 个字符。
+这个密码太常见了。
+密码只包含数字。
+Bypass password validation and create user anyway? [y/N]: y
+Superuser created successfully.
+```
+
+而创建的用户在auth_user这张表中
+
+![image-20210718234805163](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210718234805163.png)登录后台站点查看
+
+![image-20210718235201922](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210718235201922.png)
+
+新增项目
+
+![image-20210718235355839](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210718235355839.png)
