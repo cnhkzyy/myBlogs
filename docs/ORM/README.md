@@ -171,6 +171,8 @@ class Interfaces(models.Model):
 
 ## 使用admin站点添加数据
 
+### 1.注册
+
 projects/admin.py
 
 ```python
@@ -180,6 +182,8 @@ from .models import Projects, Person
 admin.site.register(Projects)
 admin.site.register(Person)
 ```
+
+### 2.创建后台用户
 
 使用```python manage.py createsuperuser```创建后台超级用户
 
@@ -199,10 +203,155 @@ Superuser created successfully.
 
 而创建的用户在auth_user这张表中
 
-![image-20210718234805163](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210718234805163.png)登录后台站点查看
+![image-20210718234805163](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210718234805163.png)
+
+### 3.登录后台查看
 
 ![image-20210718235201922](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210718235201922.png)
 
-新增项目
+### 4.新增项目
 
 ![image-20210718235355839](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210718235355839.png)
+
+### 5.优化项目名字
+
+新增后的项目名称
+
+![image-20210719225027666](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210719225027666.png)
+
+使用\_\_str\_\_优化项目名称。projects/models.py
+
+```python
+class Projects(models.Model):
+    '''
+    创建Projects模型类
+    '''
+    #7.max_length为字段的最大长度
+    #8.unique参数用于设置当前字段是否唯一，默认为unique=False
+    #9.verbose_name用于设置更人性化的字段名
+    #10.help_text用于api文档中的一个中文名称
+    name = models.CharField(verbose_name='项目名称', max_length=200, unique=True, help_text='项目名称')
+    leader = models.CharField(verbose_name='负责人', max_length=50, help_text='负责人')
+    tester = models.CharField(verbose_name='测试人员', max_length=50, help_text='测试人员')
+    programer = models.CharField(verbose_name='开发人员', max_length=50, help_text='开发人员')
+    publish_app = models.CharField(verbose_name='发布应用', max_length=100, help_text='发布应用')
+    #11.null设置数据库中此字段允许为空，blank用于设置前端可以不传递，default设置默认值
+    desc = models.TextField(verbose_name='简要描述', help_text='简要描述', blank=True, default='', null=True)
+
+
+    #12.定义子类Meta，用于设置当前数据模型的元数据信息
+    class Meta:
+        db_table = 'tb_projects'
+        #会在admin站点中，显示一个更人性化的表名
+        verbose_name = '项目'
+        #数据库模型类的复数 apple -》apples 一般和verbose_name保持一致 因为英语单词有单数和复数两种形式，这个属性是模型对象的复数名。中文则跟 verbose_name 值一致。如果不指定该选项，那么默认的复数名字是 verbose_name 加上 ‘s’ 。
+        verbose_name_plural = '项目'
+
+
+    def __str__(self):
+        return self.name
+```
+
+![image-20210719225248966](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210719225248966.png)
+
+### 6.指定要显示的字段
+
+指定在新增项目时需要显示的字段使用fields，指定在修改项目时要显示的字段使用list_display
+
+```python
+from django.contrib import admin
+from .models import Projects, Person
+# Register your models here.
+
+
+class ProjectsAdmin(admin.ModelAdmin):
+    '''
+    定制后台管理站点类
+    '''
+    #指定在新增项目时需要显示的字段
+    fields = ('name', 'leader', 'tester')
+
+    #指定在修改项目时要显示的字段
+    list_display = ['id', 'name', 'leader', 'tester']
+
+admin.site.register(Projects, ProjectsAdmin)
+admin.site.register(Person)
+```
+
+![image-20210719231701894](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210719231701894.png)
+
+![image-20210719231738559](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210719231738559.png)
+
+![image-20210719231820576](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210719231820576.png)
+
+
+
+## CRUD
+
+### 1.C-创建create
+
+方法一：使用模型类对象创建
+
+①创建一个projects模型类对象
+
+②调用模型对象的save()，保存
+
+创建模型类对象，还未制定sql语句，调用save方法保存，才去数据库中执行sql
+
+```python
+	one_obj = Projects(name='这是一个神奇的项目', leader='John', programer='Alan', publish_app='这是一个神奇的应用', desc='五描述')
+	one_obj.save()
+```
+
+方法二：使用查询集的create方法
+
+objects是manager对象，用于对数据进行操作
+
+使用模型类.objects.create()方法，无需再save
+
+```python
+        Projects.objects.create(name='这是一个神奇的项目666', leader='John', programer='Alan', publish_app='这是一个神奇的应用666', desc='五描述')
+```
+
+### 2.R-查询retrieve
+
+**获取表中的所有记录：all()**
+
+返回QuertSet查询集对象，类似列表，支持列表中的某些操作
+
++ 支持数字索引取值（负索引不支持，返回模型类对象，一条记录）、切片（返回查询集对象）
+
++ 支持for循环迭代，每次迭代取出一个模型类对象
+
++ QuertSet查询集对象.first()获取第一个记录、last()获取最后一条记录
+
++ count()获取查询集中的记录条数
+
++ 惰性查询，只有真正使用数据时，才会去数据库中执行sql语句，为了性能要求
+
++ 链式调用
+
+```python
+from projects.models import Projects
+
+Projects.objects.all()
+```
+
+**获取一条记录：get()**
+
+一般只能使用主键或唯一键作为查询条件，如果返回结果为空或多条记录，则会抛出异常
+
+返回的模型类对象，会自动提交
+
+```python
+from projects.models import Projects
+
+#获取id为1的模型类对象
+Projects.objects.get(id=1)
+
+#获取id为1的模型类对象的name值
+Projects.objects.get(id=1).name
+```
+
+
+
