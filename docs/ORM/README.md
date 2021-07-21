@@ -296,11 +296,11 @@ admin.site.register(Person)
 
 ②调用模型对象的save()，保存
 
-创建模型类对象，还未制定sql语句，调用save方法保存，才去数据库中执行sql
+创建模型类对象，还未执行sql语句，调用save方法保存，才去数据库中执行sql
 
 ```python
-	one_obj = Projects(name='这是一个神奇的项目', leader='John', programer='Alan', publish_app='这是一个神奇的应用', desc='五描述')
-	one_obj.save()
+one_obj = Projects(name='这是一个神奇的项目', leader='John', programer='Alan', publish_app='这是一个神奇的应用', desc='五描述')
+one_obj.save()
 ```
 
 方法二：使用查询集的create方法
@@ -310,7 +310,7 @@ objects是manager对象，用于对数据进行操作
 使用模型类.objects.create()方法，无需再save
 
 ```python
-        Projects.objects.create(name='这是一个神奇的项目666', leader='John', programer='Alan', publish_app='这是一个神奇的应用666', desc='五描述')
+Projects.objects.create(name='这是一个神奇的项目666', leader='John', programer='Alan', publish_app='这是一个神奇的应用666', desc='五描述')
 ```
 
 ### 2.R-查询retrieve
@@ -334,12 +334,15 @@ objects是manager对象，用于对数据进行操作
 ```python
 from projects.models import Projects
 
-Projects.objects.all()
+qs = Projects.objects.all()
+for i in qs:
+    print(f"{type(i)}")
+    print(f"{i.name}")
 ```
 
 **获取一条记录：get()**
 
-一般只能使用主键或唯一键作为查询条件，如果返回结果为空或多条记录，则会抛出异常
+get方法只能获取一条记录，如果获取多条记录或者查询的记录不存在，则会抛出异常。get方法的参数一般只能使用主键或唯一键(unique)
 
 返回的模型类对象，会自动提交
 
@@ -347,11 +350,69 @@ Projects.objects.all()
 from projects.models import Projects
 
 #获取id为1的模型类对象
-Projects.objects.get(id=1)
+one_project = Projects.objects.get(id=1)
 
 #获取id为1的模型类对象的name值
 Projects.objects.get(id=1).name
 ```
 
+**获取某一些记录：filter()**
+
+fildter方法支持多个过滤表达式，字段名__过滤表达式，如果查询结果为空，则返回 一个空查询集
+
+返回QuertSet查询集对象
+
+```python
+Projects.objects.filter()   # 等同于all()
+qs = Projects.objects.filter(leader='John')
+qs = Projects.objects.filter(leader__contains='John')
+qs = Projects.objects.filter(leader__startswith='J')
+qs = Projects.objects.filter(leader__in=['Jim','John'])
+```
+
+在ORM中有一个内置的变量pk，为数据库模型类的主键别名，不仅仅是id，可以指向任何主键
+
+| 字段名                        |           释义            |
+| ----------------------------- | :-----------------------: |
+| __ startswith=                |   过滤以xxx开头的字符串   |
+| __ isstartswith（忽略大小写） |   过滤以xxx开头的字符串   |
+| __ endswith=                  |   过滤以xxx结尾的字符串   |
+| __ iendswith（忽略大小写）    |   过滤以xxx结尾的字符串   |
+| __ in=[]                      | 过滤出在条件列表中的数据  |
+| __ gt=                        |           大于            |
+| __ gte=                       |         大于等于          |
+| __ lt=                        |           小于            |
+| __ lte=                       |         小于等于          |
+| __ exact=                     | 等于（等同于 字段名=值 ） |
+| __ isnull=Tru                 | 查询字段为空/不为空的数据 |
+| __ contains=                  |     过滤包含xxx的数据     |
+| __ icontains=（忽略大小写）   |     过滤包含xxx的数据     |
+| __ regex=                     |         正则过滤          |
 
 
+
+**反向查询：exclude()**
+
+使用方法等同于filter()，查询结果相反
+
+```python
+qs = Projects.objects.exclude(id=1)
+```
+
+
+
+**关联查询**
+
+通过从表的信息获取父表的记录，从表模型类名(小写)__ 从表字段名 __查询表达式
+
+返回查询集对象
+
+比如从表为tb_interfaces，父表为tb_projects，查询接口名字为登录接口对应的父表信息
+
+```python
+qs = Projects.objects.filter(interfaces__name='登录接口')
+```
+
+![image-20210721235017986](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210721235017986.png)
+
+![image-20210721235134333](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210721235134333.png)
