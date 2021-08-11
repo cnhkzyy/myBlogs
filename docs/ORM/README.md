@@ -419,5 +419,100 @@ qs = Projects.objects.filter(interfaces__name='登录接口')
 
 
 
-反向关联查询
+**比较查询**
+
+查询id大于2的项目集合
+
+```python
+qs = Projects.objects.filter(id__gt=2)
+```
+
+
+
+**逻辑关系查询**
+
+“与”查询：filter(查询条件1, 查询条件2)
+
+如果给filter指定多个条件，那么条件之间是与的关系
+
+查询leader为beck，且项目名字包含伟大的项目
+
+```python
+qs = Projects.objects.filter(leader='beck', name__contains='伟大')
+```
+
+“或”查询： filter(Q(查询条件1) | Q(查询条件2))
+
+可以使用Q变量指定多个条件，那么条件之间是或的关系
+
+查询leader为beck或项目名字包含伟大的项目
+
+```python
+from django.db.models import Q
+qs = Projects.objects.filter(Q(leader='beck') | Q(name__contains='项目'))
+```
+
+
+
+**查询集的操作**
+
++ 查询集相当于一个列表，支持列表中的大多数操作（通过数字索引获取值，正向切片，for循环）
++ 查询集是对数据库操作的一种优化
++ 查询集会缓存结果
++ 惰性查询
++ 查询集还支持链式操作
+
+```python
+qs = Projects.objects.filter(leader__contains='beck').filter(programer='Alan')
+```
+
+
+
+**排序操作**
+
+使用order_by排序，字段名作为排序条件，默认升序。使用 ' - '标识降序
+
+```python
+Projects.objects.filter(id__gte=3).order_by('-name')
+```
+
+多个字段排序，当name相同的时候，就按publish_app排序
+
+```python
+Projects.objects.filter(id__gte=3).order_by('name', 'publish_app')
+```
+
+
+
+
+
+### 3.U-更新update
+
+方法一：先获取模型类对象，然后修改某些字段，再调用save
+
+```python
+one_project = Projects.objects.get(id=1)
+one_project.leader = 'beck'
+one_project.save()
+```
+
+方法二：使用模型类.objects.filter(字段名=值).update(字段名=修改的值)
+
+只有调用了save()，记录的updatetime才会更新
+
+```python
+Projects.objects.filter(name='Django学习计划').update(name='Django从入门到放弃')
+```
+
+
+
+### 4.D-删除delete
+
+使用模型对象.delete()
+
+```python
+qs = Projects.objects.filter(name__contains='666')
+one_project = qs.first()
+one_project.delete()
+```
 
