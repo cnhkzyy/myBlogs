@@ -327,7 +327,7 @@ ProjectsDetail.put()
 
 | 参数名称       | 说明                                                         |
 | -------------- | ------------------------------------------------------------ |
-| required       | 默认为None，指定前端必须传该字段，如果为False，则参数可以为空（与read_only不可同时设置） |
+| required       | 默认为True，指定前端必须传该字段，如果为False，则参数可以为空（与read_only不可同时设置） |
 | read_only      | 仅用于序列化输出，默认为False，若为True，则该字段在反序列化输入时可不用传，若传入字段也不做校验 |
 | write_only     | 仅用于反序列化输入，默认为False，若为True，则该字段必传，但不会输出（与read_only不可同时设置） |
 | default        | 前端不传参，则使用默认值                                     |
@@ -779,9 +779,17 @@ class ProjectModelSerializer(serializers.ModelSerializer):
 
  2）视图方法可以返回Response对象，会为响应数据处理（render）为符合前端要求的格式
 
- 3）任何APIException异常都会被捕获到，并且处理成合适的响应信息
+比如View，固定返回的是application/json，而APIView可以根据前端指定的Accept来获取的对应格式的数据
 
- 4）在进行dispatch()分发前，会对请求进行身份认证、权限检查、流量控制
+![image-20210919154459199](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210919154459199.png)
+
+指定Accept为text/html
+
+![image-20210919155247424](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20210919155247424.png)
+
+3）任何APIException异常都会被捕获到，并且处理成合适的响应信息
+
+4）在进行dispatch()分发前，会对请求进行身份认证、权限检查、流量控制
 
 
 
@@ -876,7 +884,7 @@ Response(data, status=None, template_name=None, headers=None, content_type=None)
 
   通常该参数无需设置，会自动根据前端所需类型数据来设置参数
 
-## GenericAPIView
+## GenericAPIView 
 
 ### 特性
 
