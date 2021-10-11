@@ -10,8 +10,6 @@ ORM [文档](/ORM/)
 
 Django Rest Framework [文档](/DRF/)
 
-测开平台 [文档](/测开平台/)
-
 
 
 
