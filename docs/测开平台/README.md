@@ -219,7 +219,17 @@ class ProjectsViewSet(viewsets.ModelViewSet):
 
 ![image-20211012230517787](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211012230517787.png)
 
- 
+4.可以把rest_famework中的授权代码放在项目全局settings.py中，但所有的视图只有认证后才能访问，不建议这样使用（比如注册接口，未认证不能注册）
+
+```pyt
+REST_FRAMEWORK =  {
+		'DEFAULT_PERMISSION_CLASSES': [
+        	'rest_framework.permissions.IsAuthenticated',
+    	],
+}
+```
+
+
 
 ### Json Web Token认证
 
