@@ -145,7 +145,7 @@ LOGGING = {
 
 #### 添加rest_framwork.urls路由
 
-1.在主路由study_django/urls.py中为接口文档添加认证的路由信息
+1. 在主路由study_django/urls.py中为接口文档添加认证的路由信息
 
 ```python
        path('/api', include('rest_framework.urls')),
@@ -157,11 +157,11 @@ LOGGING = {
 
    
 
-2.可以看到可浏览的API页面多了一个登录功能。实际上这里登不登录都可以访问接口，没有授任何权限
+2. 可以看到可浏览的API页面多了一个登录功能。实际上这里登不登录都可以访问接口，没有授任何权限
 
    ![image-20211012225308092](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211012225308092.png)
 
-3.事实上，在rest_framework的settings.py中默认的授权类的字段值是AllowAny，即任何人都能访问
+3. 事实上，在rest_framework的settings.py中默认的授权类的字段值是AllowAny，即任何人都能访问
 
    ![image-20211012232315470](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211012232315470.png)
 
@@ -169,7 +169,7 @@ LOGGING = {
 
 #### 指定permission_classes
 
-1.在projects/views.py中进行授权
+1. 在projects/views.py中进行授权
 
 ```python
 from rest_framework import permissions
@@ -202,7 +202,7 @@ class ProjectsViewSet(viewsets.ModelViewSet):
     
 ```
 
-2.几种权限字段的含义
+2. 几种权限字段的含义
 
 | 字段                      | 含义                                             | 备注             |
 | ------------------------- | ------------------------------------------------ | ---------------- |
@@ -211,7 +211,7 @@ class ProjectsViewSet(viewsets.ModelViewSet):
 | IsAdminUser               | 只有管理员才能访问                               |                  |
 | IsAuthenticatedOrReadOnly | 已经认证的用户才有权限，未认证的用户只有读的权限 |                  |
 
-3.运行之后发现未认证的用户没有权限
+3. 运行之后发现未认证的用户没有权限
 
 ![image-20211012230438605](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211012230438605.png)
 
@@ -219,7 +219,7 @@ class ProjectsViewSet(viewsets.ModelViewSet):
 
 ![image-20211012230517787](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211012230517787.png)
 
-4.可以把rest_famework中的授权代码放在项目全局settings.py中，但所有的视图只有认证后才能访问，不建议这样使用（比如注册接口，未认证不能注册）
+4. 可以把rest_famework中的授权代码放在项目全局settings.py中，但所有的视图只有认证后才能访问，不建议这样使用（比如注册接口，未认证不能注册）
 
 ```pyt
 REST_FRAMEWORK =  {
@@ -233,15 +233,234 @@ REST_FRAMEWORK =  {
 
 ### Json Web Token认证
 
-+ 常用的认证机制
-  + Session认证
-  + Token认证
+#### 常用的认证机制
+
 + Session认证
-  + 保存在服务端，增加服务器开销
-  + 分布式架构中，难以维持Session会话同步
-  + CSRF攻击风险
 + Token认证
-  + 保存在客户端
-  + 跨语言、跨平台
-  + 扩展性强
-  + 鉴权性能高
+
+#### Session认证
+
++ 保存在服务端，增加服务器开销
++ 分布式架构中，难以维持Session会话同步
++ CSRF攻击风险
+
+#### Token认证
+
++ 保存在客户端
++ 跨语言、跨平台
++ 扩展性强
++ 鉴权性能高
+
+### JWT
+
+
+#### JWT介绍
+
+1. 由三部分组成：header、playload、signture
+
+
+
+2. header
+
+    + 声明类型
+    + 声明加密算法，默认为HS256
+    + base64加密，可以解密
+
+3. playload
+
+    + 存放过期时间，签发用户等
+    + 可以添加用户的非敏感信息
+    + base64加密，可以解密
+
+4. signature
+
+    + 由三部分组成
+    + 使用base64加密之后的header  + . + 使用base64加密之后的playload + 使用secret加盐处理
+
+
+#### JWT使用
+
+1. 首先看下，rest_framwork中自带的token认证，不够安全，官方不建议使用。因此需要使用第三方模块jwt
+
+![image-20211013223004045](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211013223004045.png)
+
+
+
+2. 安装djangorestframwork-jwt
+
+   ```python
+   pip install djangorestframework-jwt
+   ```
+
+   
+
+3. 配置settings.py
+
+   restframwork中的认证配置，将其复制下来，放在全局settings.py中
+
+   ![image-20211013223811524](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211013223811524.png)
+
+   ```python
+   REST_FRAMEWORK = {
+   'DEFAULT_AUTHENTICATION_CLASSES': [	              'rest_framework_jwt.authentication.JSONWebTokenAuthentication',   #有优先级，默认使用JSONWebTokenAuthentication，没有则使用SessionAuthentication，如果会话认证未通过，则抛出异常
+    'rest_framework.authentication.SessionAuthentication',
+    'rest_framework.authentication.BasicAuthentication'
+   ],
+   }
+   ```
+
+   
+
+4. 在子应用uses下创建urls.py，在里面设置登录的路由
+
+   ```python
+   from django.urls import path, include
+   from rest_framework_jwt.views import obtain_jwt_token
+   
+   
+   urlpatterns = [
+       path('login/', obtain_jwt_token)
+   ]
+   ```
+
+   实际上这里不用使用obtain_jwt_token.as_view()，因为rest_framework_jwt的views.py中已经使用了
+
+   ![image-20211013224917472](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211013224917472.png)
+
+5. 在主路由中配置子路由
+
+   ```python
+   from django.contrib import admin
+   from django.urls import path, include, re_path
+   from projects.views import *
+   from rest_framework.documentation import include_docs_urls
+   
+   from drf_yasg import openapi
+   from drf_yasg.views import get_schema_view
+   
+   # 声明schema_view
+   schema_view = get_schema_view(
+       openapi.Info(
+           title="Lemon API接口文档平台", # 必传
+           default_version='v1', # 必传
+           description="这是一个美轮美奂的接口文档",
+           terms_of_service="http://api.hello.site",
+           contact=openapi.Contact(email="123456@qq.com"),
+           license=openapi.License(name="BSD License"),
+           ),
+           public=True,
+           #权限类
+   )
+   
+   # 设置urlpatterns
+   urlpatterns = [
+       path('admin/', admin.site.urls),
+       #方式一
+       #path('index/', index),
+       #方式二，用的方式比较多
+       path('', include('projects.urls')),
+       # path('api/', include('rest_framework.urls'))
+       path('docs/', include_docs_urls(title='测试平台接口文档', description='这是一个接口文档平台')),
+       re_path(r'^swagger(?P<format>\.json|\.yaml)$',
+       schema_view.without_ui(cache_timeout=0), name='schema-json'),
+       path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+       path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema- redoc'),
+   
+       path('api/', include('rest_framework.urls')),
+       path('users/', include('users.urls'))
+   ]
+   ```
+
+   6. 未登录调用 projects/1/接口，由于在views中通过permission_classes做了一个授权，因此未登录不能访问
+
+      ```cmd
+      http :8000/projects/1/
+      ```
+
+      ![image-20211013225609296](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211013225609296.png)
+
+      ![image-20211013225637241](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211013225637241.png)
+
+   调用登录接口，得到token
+
+   ```cmd
+   http :8000/users/login/ username=admin password=123456
+   ```
+
+   ![image-20211013225944540](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211013225944540.png)
+
+
+
+携带token请求id为1的项目详情
+
+使用Authorization: "JWT + 空格 +  <token>"的形式
+
+```cmd
+http :8000/projects/1/ Authorization:"JWT eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6ImFkbWluIiwiZXhwIjoxNjM0MTM3NzcyLCJlbWFpbCI6IjEwNjk5NjY0NzZAcXEuY29tIn0.nLL99-VEYyZ09Uz3Qlb1A23sycU7XASbKHVIw1W0KrM"
+```
+
+![image-20211013230557401](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211013230557401.png)
+
+通过加-v可以看到Authorization放在请求体中
+
+![image-20211013230819703](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211013230819703.png)
+
+7. rest_framwork_jwt的settings.py中的几个重要的配置信息
+
+   ![image-20211013231621179](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211013231621179.png)
+
+在全局settings.py中设置
+
+```python
+JWT_AUTH = {
+    # 默认5分钟过期，可以使用JWT_EXPIRATION_DELTA来设置过期时间为1天
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=1),
+    # 默认的前缀是JWT，可以使用JWT_AUTH_HEADER_PREFIX修改前缀为B
+    'JWT_AUTH_HEADER_PREFIX': 'B',
+}
+```
+
+可以看到使用JWT作为前缀，身份认证失败
+
+![image-20211013232036081](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211013232036081.png)
+
+使用B作为前缀，身份认证成功
+
+![image-20211013232118214](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211013232118214.png)
+
+
+
+8. 直接使用Authorization跟上token请求非常不方便，可以使用httpie-jwt-auth插件
+
+   安装httpie-jwt-auth插件
+
+   ```python
+   pip install httpie-jwt-auth
+   ```
+
+   获取token
+
+   ```cmd
+   http :8000/users/login/ username=beck password=123456
+   ```
+
+   请求时，传递token（这个用的不多，可以暂时不用）
+
+   ```cmd
+   JWT_AUTH_PREFIX=JWT http --auth-type=jwt --auth="your token" :8000/projects/1/
+   ```
+
+   设置环境变量，简化token的传递
+
+   ```cmd
+   set JWT_AUTH_PREFIX="JWT"
+   set JWT_AUTH_TOKEN="your token"
+   ```
+
+   --auth-type可以缩写为-A，实际的请求可以简化为
+
+   ```cmd
+   http -A jwt :8000/projects/1/ 
+   ```
+
+   ![image-20211013233211005](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211013233211005.png)
