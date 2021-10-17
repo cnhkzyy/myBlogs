@@ -148,7 +148,7 @@ LOGGING = {
 1. 在主路由study_django/urls.py中为接口文档添加认证的路由信息
 
 ```python
-       path('/api', include('rest_framework.urls')),
+       path('api/', include('rest_framework.urls')),
 ```
 
  这里的认证接口是前后端不分离的
@@ -256,9 +256,17 @@ REST_FRAMEWORK =  {
 
 #### JWT介绍
 
-1. 由三部分组成：header、playload、signture
+1. 由三部分组成：header、playload、signture（以.分隔）
 
+```json
+eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6ImFkbWluIiwiZXhwIjoxNjM0MzEzMzMwLCJlbWFpbCI6IjEwNjk5NjY0NzZAcXEuY29tIn0.IcHH8BR7qi6gzONHC8_RXN34zHcUxoYl5ISbey_v684
+```
 
+header：eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9
+
+playload：eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6ImFkbWluIiwiZXhwIjoxNjM0MzEzMzMwLCJlbWFpbCI6IjEwNjk5NjY0NzZAcXEuY29tIn0
+
+signture：IcHH8BR7qi6gzONHC8_RXN34zHcUxoYl5ISbey_v684
 
 2. header
 
@@ -266,16 +274,30 @@ REST_FRAMEWORK =  {
     + 声明加密算法，默认为HS256
     + base64加密，可以解密
 
+    base64解密第一部分
+
+    ![image-20211015000025068](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211015000025068.png)
+
 3. playload
 
     + 存放过期时间，签发用户等
     + 可以添加用户的非敏感信息
     + base64加密，可以解密
 
+    base64解密第二部分
+
+    ![image-20211015000737501](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211015000737501.png)
+
 4. signature
 
     + 由三部分组成
-    + 使用base64加密之后的header  + . + 使用base64加密之后的playload + 使用secret加盐处理
+    
+    + 使用base64加密之后的header  + . + 使用base64加密之后的playload + 使用HS256算法加密，同时secret加盐处理
+    
+      secret是全局settings.py中的SECRET_KEY
+    
+      ![image-20211015001112034](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211015001112034.png)
+
 
 
 #### JWT使用
@@ -464,3 +486,275 @@ JWT_AUTH = {
    ```
 
    ![image-20211013233211005](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211013233211005.png)
+   
+9. 如果不光要返回token，还要返回username
+
+可以查看rest_framework_jwt的settings.py中，有对响应结果负载的操作
+
+![image-20211014234510883](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211014234510883.png)
+
+进入utils.py，发现jwt_response_playload_handler方法返回的是token
+
+![image-20211014234838650](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211014234838650.png)
+
+如果要加上返回username，则需要在utils目录下新建一个jwt_handler.py，在里面重写jwt_response_playload_handler方法
+
+```python
+def jwt_response_payload_handler(token, user=None, request=None):
+    """
+    Returns the response data for both the login and refresh views.
+    Override to return a custom response such as including the
+    serialized representation of the User.
+
+    Example:
+
+    def jwt_response_payload_handler(token, user=None, request=None):
+        return {
+            'token': token,
+            'user': UserSerializer(user, context={'request': request}).data
+        }
+
+    """
+    return {
+        'token': token,
+        'user_id': user.id,
+        'username': user.username
+    }
+```
+
+同时需要修改全局settings.py
+
+```python
+JWT_AUTH = {
+    # 默认5分钟过期，可以使用JWT_EXPIRATION_DELTA来设置过期时间为1天
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=1),
+    # 默认的前缀是JWT，可以使用JWT_AUTH_HEADER_PREFIX修改前缀为B
+    'JWT_AUTH_HEADER_PREFIX': 'B',
+    'JWT_RESPONSE_PAYLOAD_HANDLER': 'utils.jwt_handler.jwt_response_payload_handler',
+}
+```
+
+重新请求登录接口，发现返回了我们想要的user_id和username
+
+![image-20211014235621634](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211014235621634.png)
+
+
+
+### 用户注册
+
+#### User自带模型类
+
+django自带User模型类，因此没有必要自己创建User模型
+
+![image-20211017121622123](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211017121622123.png)
+
+![image-20211017121831657](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211017121831657.png)
+
+![image-20211017121907635](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211017121907635.png)
+
+实际上django.contrib.auth是django系统的一个子应用
+
+![image-20211017122410281](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211017122410281.png)
+
+![image-20211017122216536](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211017122216536.png)
+
+![image-20211017122624705](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211017122624705.png)
+
+
+
+#### 注册功能需求
+
+| 参数     | 输入/输出  | 校验/描述                    |
+| -------- | ---------- | ---------------------------- |
+| 用户名   | 输入、输出 | 6-20位，注册用户名不能重复   |
+| 邮箱     | 输入       | 符合邮件格式                 |
+| 密码     | 输入       | 6-20位，密码和确认密码要一致 |
+| 确认密码 | 输入       | 6-20位，密码和确认密码要一致 |
+| token    | 输出       | 注册成功之后，需要生成token  |
+
+1. 用什么做校验？
+
+   序列化器的反序列化过程进行校验
+
+2. 创建序列化器，有两种情况：情况1，继承serializer，这些字段自己指定，情况2，继承ModelSerializer，没有必要自己指定字段
+
+3. 在Users下定义serializer.py
+
+   ```python
+   from rest_framework import serializers
+   from django.contrib.auth.models import User
+   from rest_framework_jwt.settings import api_settings
+   from rest_framework.validators import UniqueValidator
+   
+   
+   
+   # 检查用户名是否已注册
+   # def is_unique_username(username):
+   #     if User.objects.filter(username=username):
+   #         raise serializers.ValidationError('用户名已注册')
+   
+   
+   
+   class RegisterSerializer(serializers.ModelSerializer):
+       #password_confirm和token在User模型类中没有定义，没有定义的必须在这里定义
+       #model没有指定的字段不能在extra_kwargs中定义，只能在下面指定
+       password_confirm = serializers.CharField(label='确认密码',
+                                                min_length=6,
+                                                max_length=20,
+                                                help_text='确认密码',
+                                                write_only=True,
+                                                error_messages={
+                                                    'min_length': '仅允许6-20个字符的确认密码',
+                                                    'max_length': '仅允许6-20个字符的确认密码',
+                                                })
+       token = serializers.CharField(label='生成token', read_only=True)
+   
+       class Meta:
+           model = User
+           fields = ('id', 'username', 'password', 'email', 'password_confirm', 'token')
+           extra_kwargs = {
+               #用户名没有必要指定read_only和write_only，默认能输入输出
+               'username': {
+                   'label': '用户名',
+                   'help_text': '用户名',
+                   'min_length': 6,
+                   'max_length': 20,
+                   'error_messages': {
+                       'min_length': '仅允许6-20个字符的用户名',
+                       'max_length': '仅允许6-20个字符的用户名'
+                   },
+                   #不用校验username重复，因为在原model中django/contrib/auth/models.py:321中已经定义username为unique
+                   #'validators': [ is_unique_username ]
+               },
+               #email原模型类定义可以前端不传，blank=True，我们要求是必须要传，因为需要加required字段
+               'email': {
+                   'label': '邮箱',
+                   'help_text': '邮箱',
+                   'write_only': True,
+                   'required': True,
+                   #添加邮箱重复校验
+                   'validators': [ UniqueValidator(queryset=User.objects.all(), message='邮箱已注册') ]
+               },
+               'password': {
+                'label': '密码',
+                   'help_text': '密码',
+                'write_only': True,
+                   'min_length': 6,
+                   'max_length': 20,
+                   'write_only': True,
+                'error_messages': {
+                       'min_length': '仅允许6-20个字符的用户名',
+                       'max_length': '仅允许6-20个字符的用户名'
+                   }
+               }
+           }
+   
+   
+       # 检查密码和确认密码是否一致
+       def validate(self, attrs):
+           if attrs['password_confirm'] != attrs['password']:
+               raise serializers.ValidationError('两次输入密码不正确')
+           return attrs
+   
+   
+       def create(self, validated_data):
+           #del validated_data['password_confirm']
+           validated_data.pop('password_confirm')
+           #方法一:
+           user = User.objects.create_user(**validated_data)
+           #方法二：
+           #user = super(RegisterSerializer, self).create(validated_data)
+           #方法二必须使用set_password，否则密码是以明文保存的
+           #user.set_password(validated_data['password'])
+           #user.save()
+   
+           # 手动创建token
+           jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
+           jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
+   
+           payload = jwt_payload_handler(user)
+           token = jwt_encode_handler(payload)
+   
+           user.token = token
+           return user
+   ```
+   
+   4. 在Users/views.py中定义view
+   
+   ```python
+   from django.shortcuts import render
+   from rest_framework import generics
+   from . import serializer
+   
+   # Create your views here.
+   
+   # 这里只需要一个post接口，不需要get接口
+   # 如果继承APIView，需要自己定义post方法
+   # generics模块下有一个CreateAPIView，可以直接使用
+   # CreateAPIView继承了GenericAPIView，GenericAPIView使用的时候需要定义queryset和serializer_class
+   # 但对于post请求，不需要queryset
+   class RegisterView(generics.CreateAPIView):
+       serializer_class = serializer.RegisterSerializer
+       #这里不需要使用permission_classes指定权限
+   ```
+   
+   5. 在users.urls中定义url路径
+   
+   ```python
+   from django.urls import path, include
+   from rest_framework_jwt.views import obtain_jwt_token
+   from . import views
+   
+   
+   urlpatterns = [
+       path('login/', obtain_jwt_token),
+       path('register/', views.RegisterView.as_view())
+   ]
+   ```
+   
+   6. 在全局study_django.urls中定义url路径
+   
+   ```python
+   from django.contrib import admin
+   from django.urls import path, include, re_path
+   from projects.views import *
+   from rest_framework.documentation import include_docs_urls
+   
+   from drf_yasg import openapi
+   from drf_yasg.views import get_schema_view
+   
+   # 声明schema_view
+   schema_view = get_schema_view(
+       openapi.Info(
+           title="Lemon API接口文档平台", # 必传
+           default_version='v1', # 必传
+           description="这是一个美轮美奂的接口文档",
+           terms_of_service="http://api.hello.site",
+           contact=openapi.Contact(email="123456@qq.com"),
+           license=openapi.License(name="BSD License"),
+           ),
+           public=True,
+           #权限类
+   )
+   
+   # 设置urlpatterns
+   urlpatterns = [
+       path('admin/', admin.site.urls),
+       #方式一
+       #path('index/', index),
+       #方式二，用的方式比较多
+       path('', include('projects.urls')),
+       # path('api/', include('rest_framework.urls'))
+       path('docs/', include_docs_urls(title='测试平台接口文档', description='这是一个接口文档平台')),
+       re_path(r'^swagger(?P<format>\.json|\.yaml)$',
+       schema_view.without_ui(cache_timeout=0), name='schema-json'),
+       path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+       path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema- redoc'),
+   
+       path('api/', include('rest_framework.urls')),
+       path('users/', include('users.urls'))
+   ]
+   ```
+   
+   
+
