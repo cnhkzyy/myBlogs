@@ -20,6 +20,8 @@ Django Rest Framework [文档](/DRF/)
 
 接口自动化测试 [文档](/接口自动化测试/)
 
+HttpRunner [文档](/HttpRunner/)
+
 
 
 ## 性能测试
