@@ -756,5 +756,115 @@ django自带User模型类，因此没有必要自己创建User模型
    ]
    ```
    
+   7. 请求
+
+
+
+## 前端项目
+
+### 项目结构分析
+
+```python
+lemon-test
+	|
+	|___public
+    		|
+        	|___index.html   主页（携带id=app)
+    |
+    |___src         前端源码目录
+    		|
+        	|___api
+            		|
+                	|___api.js    定义的所有接口的请求
+            |
+            |___assets      静态资源目录
+            |
+            |___axios       axios的一些配置
+            |
+            |___components  存放组件的目录
+                    |
+                    |___common   Header、Home、Sidebar、Tags等组件
+                    |
+                    |___page     自己写的组件
+            |
+            |___router    路由
+            |
+            |___App.vue   根组件
+```
+
+
+
+###  项目配置修改
+
+#### 修改api.js
+
+```javascript
+let host = 'http://127.0.0.1:8000';   //将host修改为后端服务的地址，注意端口8000后不要加/
+```
+
+
+
+### 跨域请求
+
+前后端联调的时候，在前端页面，点击登录，会阻止请求一个非本域的链接（ip地址或端口不一致都是跨域）
+
+![image-20211020225439428](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211020225439428.png)
+
+
+
+#### 后端解决方法：开启跨域
+
+1. 安装django-cors-headers
+
+   ```python
+   pip install django-cors-headers
+   ```
+
+2. 将corsheaders添加到settings.py文件的INSTALLED_APPS中，尽量放在前面（放在子应用前面）
+
+   ```python
+   INSTALLED_APPS = [ 'corsheaders' ]
+   ```
+
+3. 添加中间件
+
+   ```python
+   MIDDLEWARE = [
+       # 需要添加在CommonMiddleware中间件之前
+       'corsheaders.middleware.CorsMiddleware',
+       'django.middleware.common.CommonMiddleware',
+   ]
+   ```
+
+4. 添加白名单
+
+   ```python
+   # CORS_ORIGIN_ALLOW_ALL为True，指定所有域名(ip)都可以访问后端接口，默认为False
+   CORS_ORIGIN_ALLOW_ALL = True
    
+   # CORS_ORIGIN_WHITELIST指定能够访问后端接口的ip或域名列表
+   # CORS_ORIGIN_WHITELIST = [
+   #	'http://127.0.0.1:8000',   # 后端
+   #   'http://locahost:8080',    # 前端
+   #	'http://192.168.1.63:8080',  #前端
+   #	'http://localhost:8000',    # 后端
+   # ]
+   
+   # 允许跨域时携带Cookie，默认为False
+   CORS_ALLOW_CREDENTIALS = True
+   ```
+
+   
+
+#### 前端解决方法
+
+在public目录下的index.html中配置<meta http-equiv="Content-Security-Policy"
+
+
+
+
+
+
+
+
 
