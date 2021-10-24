@@ -45,8 +45,7 @@ hrun --startproject 项目名
   - 批量执行测试（参数化处理）
 - env目录
   - 存放全局环境变量 比如管理员账号密码
-
-+ debugtalk文件
+- debugtalk文件
   - 主要用于处理动态参数（接口参数的动态化，测试数据的动态化）
 
 
@@ -147,6 +146,7 @@ validate:
 
 ```python 
 hrun yaml文件的绝对路径或相对路径
+hrun yaml文件 --log-level debug  设置日志等级为debug，默认为info
 ```
 
 hrun方法支持如下参数：yaml文件、字典
