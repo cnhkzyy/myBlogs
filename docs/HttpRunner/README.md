@@ -183,7 +183,12 @@ runner = HttpRunner(failfast=False)
 #run方法支持如下参数
 #yaml用例文件的路径
 #字典（用例的信息）
+#1).文件路径
 runner.run(r'E:\virtual_workshop\httprunner-learn\testcases\login.yml')
+#2).文件夹路径
+runner.run('testcases')
+#3).混合情况
+runner.run(['testsuites', 'testsuites/api_testsuite.yml'])
 
 #3.查看运行汇总结果
 print(runner.summary)
