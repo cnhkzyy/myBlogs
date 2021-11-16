@@ -862,9 +862,328 @@ let host = 'http://127.0.0.1:8000';   //将host修改为后端服务的地址，
 
 
 
+## 数据库设计
 
 
 
+### 前序步骤
+
+1. 在项目目录下创建apps目录
+
+![image-20211116234603489](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211116234603489.png)
+
+2. 在apps目录下使用```startapp appname```分别创建configures、debugtalks、envs、interfaces、projects、reports、testcases、testsuites、users等九大子应用
+
+3. 配置setting.py
+
+```python
+import sys
+import os, datetime
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
+
+
+INSTALLED_APPS = [
+    ...
+    #注册子应用
+    #子应用名.apps.子应用名首字母大写Config
+    'projects.apps.ProjectsConfig',
+    'interfaces.apps.InterfacesConfig',
+    'users.apps.UsersConfig',
+    'configures.apps.ConfiguresConfig',
+    'debugtalks.apps.DebugtalksConfig',
+    'envs.apps.EnvsConfig',
+    'reports.apps.ReportsConfig',
+    'testsuites.apps.TestsuitesConfig',
+    'testcases.apps.TestcasesConfig',
+    ...
+```
+
+
+
+### 基类模型
+
+在utils目录下创建基类模型base_models.py
+
+```python
+from django.db import models
+
+class BaseModel(models.Model):
+    '''
+    数据库表公共字段
+    '''
+    create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间", help_text="创建时间")
+    update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间", help_text="更新时间")
+    is_delete = models.BooleanField(default=False, verbose_name="逻辑删除", help_text="逻辑删除")
+
+    class Meta:
+        #为抽象模型类，用于其他模型来继承，数据库迁移时不会创建BaseModel表
+        abstract = True
+        verbose_name = "公共字段表"
+        db_table = "BaseModel"
+```
+
+
+
+### 项目模型
+
+apps/projects/models.py
+
+```python
+from django.db import models
+from utils.base_models import BaseModel
+
+
+class Projects(BaseModel):
+    id = models.AutoField(verbose_name='id主键', primary_key=True, help_text='id主键')
+    name = models.CharField('项目名称', max_length=200, unique=True, help_text='项目名称')
+    leader = models.CharField('负责人', max_length=50, help_text='项目负责人')
+    tester = models.CharField('测试人员', max_length=50, help_text='项目测试人员')
+    programmer = models.CharField('开发人员', max_length=50, help_text='开发人员')
+    publish_app = models.CharField('发布应用', max_length=100, help_text='发布应用')
+    desc = models.CharField('简要描述', max_length=200, null=True, blank=True, default='描述信息',
+                            help_text='简要描述')
+
+    class Meta:
+        db_table = 'tb_projects'
+        verbose_name = '项目信息'
+        verbose_name_plural = verbose_name
+
+
+    def __str__(self):
+        return self.name
+```
+
+
+
+### 接口模型
+
+apps/interfaces/models.py
+
+```python
+from django.db import models
+from utils.base_models import BaseModel
+
+
+class Interfaces(BaseModel):
+    id = models.AutoField(verbose_name='id主键', primary_key=True, help_text='id主键')
+    name = models.CharField('接口名称', max_length=200, unique=True, help_text='接口名称')
+    project = models.ForeignKey('projects.Projects', on_delete=models.CASCADE,
+                                related_name='interfaces', help_text='所属项目')
+    tester = models.CharField('测试人员', max_length=50, help_text='测试人员')
+    desc = models.CharField('简要描述', max_length=200, null=True, blank=True, help_text='简要描述')
+
+
+    class Meta:
+        db_table = 'tb_interfaces'
+        verbose_name = '接口信息'
+        verbose_name_plural = verbose_name
+
+
+    def __str__(self):
+        return self.name
+```
+
+
+
+### 用例模型
+
+apps/testcases/models.py
+
+```python
+from django.db import models
+from utils.base_models import BaseModel
+
+
+class TestCases(BaseModel):
+    id = models.AutoField(verbose_name='id主键', primary_key=True, help_text='id主键')
+    name = models.CharField('用例名称', max_length=50, unique=True, help_text='用例名称')
+    interface = models.ForeignKey('interfaces.Interfaces', on_delete=models.CASCADE,
+                                  help_text='所属接口')
+    include = models.TextField('前置', null=True, help_text='用例执行前置顺序')
+    author = models.CharField('编写人员', max_length=50, help_text='编写人员')
+    request = models.TextField('请求信息', help_text='请求信息')
+
+
+    class Meta:
+        db_table = 'tb_testcases'
+        verbose_name = '用例信息'
+        verbose_name_plural = verbose_name
+
+
+    def __str__(self):
+        return self.name
+```
+
+
+
+### 配置模型
+
+apps/configures/models.py
+
+```python
+from django.db import models
+from utils.base_models import BaseModel
+
+
+class Configures(BaseModel):
+    id = models.AutoField(verbose_name='id主键', primary_key=True, help_text='id主键')
+    name = models.CharField('配置名称', max_length=50, help_text='配置名称')
+    interface = models.ForeignKey('interfaces.Interfaces', on_delete=models.CASCADE,
+                                  related_name='configures', help_text='所属接口')
+    author = models.CharField('编写人员', max_length=50, help_text='编写人员')
+    request = models.TextField('请求信息', help_text='请求信息')
+
+    class Meta:
+        db_table = 'tb_configures'
+        verbose_name = '配置信息'
+        verbose_name_plural = verbose_name
+
+
+    def __str__(self):
+        return self.name
+```
+
+
+
+### 套件模型
+
+apps/testsuites/models.py
+
+```python
+from django.db import models
+from utils.base_models import BaseModel
+
+
+class TestSuites(BaseModel):
+    id = models.AutoField(verbose_name='id主键', primary_key=True, help_text='id主键')
+    name = models.CharField('套件名称', max_length=200, unique=True, help_text='套件名称')
+    project = models.ForeignKey('projects.Projects', on_delete=models.CASCADE,
+                                related_name='testsuites', help_text='所属项目')
+    include = models.TextField('包含的接口', null=False, help_text='包含的接口')
+
+    class Meta:
+        db_table = 'tb_testsuites'
+        verbose_name = '套件信息'
+        verbose_name_plural = verbose_name
+
+
+    def __str__(self):
+        return self.name
+```
+
+
+
+### 内置函数模型
+
+apps/debugtalks/models.py
+
+```python
+from django.db import models
+from utils.base_models import BaseModel
+
+
+class DebugTalk(BaseModel):
+    id = models.AutoField(verbose_name='id主键', primary_key=True, help_text='id主键')
+    name = models.CharField('debugtalk文件名称', max_length=200, default='debugtalk.py',
+                            help_text='debugtalk.py')
+    debugtalk = models.TextField(null=True, default='#debugtalk.py', help_text='debugtalk.py文件')
+    project = models.OneToOneField('projects.Projects', on_delete=models.CASCADE,
+                                   related_name='debugtalks',  help_text='所属项目')
+
+
+    class Meta:
+        db_table = 'tb_debugtalks'
+        verbose_name = 'debugtalk.py文件'
+        verbose_name_plural = verbose_name
+
+
+    def __str__(self):
+        return self.name
+```
+
+
+
+###  环境变量模型
+
+apps/envs/models.py
+
+```python
+from django.db import models
+from utils.base_models import BaseModel
+
+
+class Envs(BaseModel):
+    id = models.AutoField(verbose_name='id主键', primary_key=True, help_text='id主键')
+    name = models.CharField(verbose_name='环境名称', max_length=200, unique=True, help_text='环境名称')
+    base_url = models.URLField(verbose_name='请求base url', max_length=200, help_text='请求base url')
+    desc = models.CharField(verbose_name='简要描述', max_length=200, help_text='简要描述')
+
+    class Meta:
+        db_table = 'tb_envs'
+        verbose_name = '环境信息'
+        verbose_name_plural = verbose_name
+
+
+    def __str__(self):
+        return self.name
+```
+
+
+
+### 测试报告模型
+
+apps/reports/models.py
+
+```python
+from django.db import models
+from utils.base_models import BaseModel
+
+
+class Reports(BaseModel):
+    id = models.AutoField(verbose_name='id主键', primary_key=True, help_text='id主键')
+    name = models.CharField('报告名称', max_length=200, unique=True, help_text='报告名称')
+    result = models.BooleanField('执行结果', default=1, help_text='执行结果')   #1为成功
+    count = models.IntegerField('用例总数', help_text='总用例数')
+    success = models.IntegerField('成功总数', help_text='成功总数')
+    html = models.TextField('报告HTML源码', help_text='报告HTML源码', null=True, blank=True, default='')
+    summary = models.TextField('报告详情', help_text='报告详情', null=True, blank=True, default='')
+
+    class Meta:
+        db_table = 'tb_reports'
+        verbose_name = '测试报告'
+        verbose_name_plural = verbose_name
+
+
+    def __str__(self):
+        return self.name
+```
+
+
+
+## 项目模块
+
+
+
+### 项目需求
+
+| 参数                    | 输入/输出            | 校验/描述                     |
+| ----------------------- | -------------------- | ----------------------------- |
+| 项目名(name)            | 输入、输出           | 最大200个字符，项目名不能重复 |
+| 项目负责人(leader)      | 输入、输出           | 最大50个字符                  |
+| 测试人员(tester)        | 输入、输出           | 最大50个字符                  |
+| 开发人员(programmer)    | 输入、输出           | 最大50个字符                  |
+| 发布应用名(publish_app) | 输入、输出           | 最大100个字符                 |
+| 简要描述(desc)          | 可输入也可输入、输出 | 最大200个字符                 |
+| 创建时间(create_time)   | 输出                 |                               |
+| 更新时间(update_time)   | 不输入、不输出       |                               |
+| 逻辑删除(is_delete)     | 不输入、不输出       |                               |
+
++ 删除项目时，只进行逻辑删除(is_delete修改为True)
++ 获取项目列表信息时，要求能获取此项目下的接口总数、用例总数、配置总数、套件总数，同时要求输出创建时间，且需要将创建时间格式化为2019-06-24 00:36:55
++ 要求提供获取此项目下的所有项目名的接口
++ 要求提供获取次项目下的所有接口信息的接口
 
 
 
