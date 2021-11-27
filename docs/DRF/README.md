@@ -1822,6 +1822,7 @@ views.py
 
 ```python
 from projects.serializer import ProjectsNameSerializer
+from rest_framework.decorators import action
 
 class ProjectsViewSet(viewsets.ModelViewSet):
     queryset = Projects.objects.all()
