@@ -174,7 +174,7 @@ class ProjectsDetail(View):
 
 ## 分支：v4.2_序列化和反序列化-1(113)
 
-### 代码片段一
+### CharField类应用
 
 projects/serializer.py
 
@@ -205,7 +205,7 @@ class ProjectSerializer(serializers.Serializer):
 
 
 
-### 源码分析一
+### CharField类源码分析
 
 1. serializers是一个模块文件，实际上在serializers.py中首先从rest_framework.fields导入了各种字段类型对应的类
 
@@ -215,7 +215,7 @@ class ProjectSerializer(serializers.Serializer):
 
 2. 以最常见的CharField为例，看看它的源码的逻辑
 
-rest_framework/field.py
+   rest_framework/field.py
 
 ```python
 class CharField(Field):
@@ -299,7 +299,7 @@ from rest_framework.utils.formatting import lazy_format
 	name = serializers.CharField(label='项目名称', min_length=5, max_length=7, help_text='项目名称111', write_only=True)
 ```
 
-通过debug，可以看到message有一个固定值
+​		通过debug，可以看到message有一个固定值
 
 ![image-20211130234726861](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211130234726861.png)
 
@@ -333,10 +333,10 @@ from rest_framework.utils.formatting import lazy_format
        def __mod__(self, value):
            return str(self) % value
    ```
-
-关于\_\_slots__：
-
-默认情况下，访问一个实例的属性是通过访问该实例的\_\_dict__来实现的，如访问a.x就相当于访问a.\_\_dict\_\_['x']，而python内置的字典本质是一个哈希表，它是一种用空间换时间的数据结构，为了解决冲突的问题，当字典使用量超过2/3时，python会根据情况进行2-4倍的扩容，因此使用\_\_slots\_\_可以大幅减少实例的空间消耗。\_\_slots\_\_相当于定义的一个属性名称集合，只有在这个集合里的名称才可以绑定
+   
+   关于\_\_slots__：
+   
+   默认情况下，访问一个实例的属性是通过访问该实例的\_\_dict__来实现的，如访问a.x就相当于访问a.\_\_dict\_\_['x']，而python内置的字典本质是一个哈希表，它是一种用空间换时间的数据结构，为了解决冲突的问题，当字典使用量超过2/3时，python会根据情况进行2-4倍的扩容，因此使用\_\_slots\_\_可以大幅减少实例的空间消耗。\_\_slots\_\_相当于定义的一个属性名称集合，只有在这个集合里的名称才可以绑定
 
 ```python
 class Test(object):
@@ -351,13 +351,13 @@ print(t.x)  #10
 print(t.y)  #20
 ```
 
-然后看\_\_str__这个魔术方法，它会返回一个对象的描述信息。如果是实例第一次创建，那么result=None，这时候它会格式化format_string对应的字符串，这个format_string以及它对应的动态参数args、关键字参数kwargs，都是实例化lazy_format时带入的参数，再返回到CharField类，看看message这一行
+  然后看\_\_str__这个魔术方法，它会返回一个对象的描述信息。如果是实例第一次创  建，那么result=None，这时候它会格式化format_string对应的字符串，这个  format_string以及它对应的动态参数args、关键字参数kwargs，都是实例化lazy_format时带入的参数，再返回到CharField类，看看message这一行
 
 ```python
       message = lazy_format(self.error_messages['max_length'], max_length=self.max_length)
 ```
 
-这时lazy_format实例化时的参数对应起来就是，format_string=self.error_messages['max_length']，*args=max_length=self.max_length
+​	这时lazy_format实例化时的参数对应起来就是，   format_string=self.error_messages['max_length']，*args=max_length=self.max_length
 
 5. 先看self.error_messages，发现error_messages是子类CharField从父类Field继承过来的属性
 
@@ -440,8 +440,6 @@ print(t.y)  #20
 
    ![image-20211201005743037](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211201005743037.png)
 
-
-
 6. 问题来了，我们明明定义的default_error_messages是英文，怎么会显示简体中文？
 
    ![image-20211201005919279](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211201005919279.png)
@@ -463,3 +461,191 @@ print(t.y)  #20
       ![image-20211201011106849](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211201011106849.png)
 
       ![image-20211201010856118](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211201010856118.png)
+
+      8. 再来看下下一行中，是往self.validators这个校验器列表中添加数据
+
+         ```python
+         self.validators.append(MaxLengthValidator(self.max_length, message=message))
+         ```
+
+         self.validators是继承Field类的属性
+
+         ```python
+         class Field:
+             ...
+             default_validators = []
+             ...
+         
+              def __init__(self, read_only=False, write_only=False,
+                          required=None, default=empty, initial=empty, source=None,
+                          label=None, help_text=None, style=None,
+                          error_messages=None, validators=None, allow_null=False):
+             ...
+             	if validators is not None:
+                 	self.validators = list(validators)
+                     
+             ...
+              @property
+              def validators(self):
+                 if not hasattr(self, '_validators'):
+                     self._validators = self.get_validators()
+                 return self._validators
+             
+              @validators.setter
+              def validators(self, validators):
+                  self._validators = validators
+         
+              def get_validators(self):
+                  return list(self.default_validators)
+             ...
+             
+         ```
+
+         @property负责把一个getter方法变为属性，因为如果使用self.属性=属性值的方法，容易把属性暴露出去，导致属性值可以任意修改，而使用self.validators()直接调用getter方法又略显负责，因此可以给getter方法加上@property装饰器，把它作为一个属性调用，相当于
+
+         ```python
+         self = Field()
+         
+         改变之前：
+         validators = self.validators()
+         
+         改变之后：
+         validators = self.validators
+         ```
+
+         如果要给变量赋值，使用setter方法self.validators('值')略显麻烦，因此使用@validators.setter装饰器把对应的setter方法变成属性赋值，相当于
+
+         ```python
+         self = Field()
+         
+         改变之前：
+         self.validators(['xxx'])
+         
+         改变之后：
+         self.validators = ['xxx']
+         ```
+
+         分别两种情况：
+
+         情况一：如果Field类实例化的时候validators有定义，也就是我们在序列化器中定义字段的时候有自定义validators值，如
+
+         ```python
+         #创建自定义校验器
+         #第一个参数为字段的值
+         def is_unique_project_name(name):
+             #要求项目的名字必须包含项目
+             if '项目' not in name:
+                 raise serializers.ValidationError('项目名称中必须包含"项目"')
+                 
+                 
+         #1.继承Serializer类或者子类
+         class ProjectSerializer(serializers.Serializer):
+             ...
+                 
+                 name = serializers.CharField(label='项目名称', max_length=200,
+                                          help_text='项目名称111', write_only=True,
+                                          validators=[UniqueValidator(queryset=Projects.objects.all(), message='项目名不能重复'),
+                                                      is_unique_project_name])
+              ...
+         ```
+
+         那么在实例化的时候，会判断validators是否为空，如果不为空，则直接通过调用self.validators调用setter方法给属性赋值，这个值就是将位置参数validators的值转为列表
+
+         ```python
+         if validators is not None:
+                self.validators = list(validators)
+         ```
+
+         情况二：如果Field类实例化的时候validators没有定义，那么子类CharField中调用self.validators实际上调用的是Field类的getter方法，当self没有_validators属性的时候，它会将调用self.get_validators()，这个方法返回的是空列表
+
+         ```python
+         @property
+         def validators(self):
+             if not hasattr(self, '_validators'):
+                 self._validators = self.get_validators()
+             return self._validators
+             
+         @validators.setter
+         def validators(self, validators):
+             self._validators = validators
+         
+         def get_validators(self):
+             return list(self.default_validators)
+         ```
+         
+         ![image-20211207212850349](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211207212850349.png)
+         
+         
+         
+         9. 因此self.validators.append就是将校验器添加到一个校验器列表中，那么MaxLengthValidator类是从哪里来的？
+         
+            ```python
+             self.validators.append(MaxLengthValidator(self.max_length, message=message))
+            ```
+         
+            查看源码，发现MaxLengthValidator是django.core.validators.py中的一个类，这个类继承了父类BaseValidator及其构造方法，又重写了父类的compare和clean方法
+         
+            因此MaxLengthValidator实例化的时候，可以传两个参数，第一个是位置参数limit_value，第二个是关键字参数message，实际调用中我们传的第一个是self.max_length，也就是序列化器类中字段的最大值max_length，第二个参数传的是message，是经过lazy_format格式化之后的message“请确保这个字段不能超过7个字符”
+         
+            然后实例化的时候，会给MaxLengthValidator增加属性limit_value，如果message存在的时候，会给它增加属性message
+         
+            这个\_\_call\_\_方法的意义是，将一个实例作为一个方法来调用，如上所述，self.validators这个校验器列表中放的元素都是一个个校验器实例对象，比如MaxLengthValidator()、MinLengthValidator()等，真正要用的时候，将这些对象再调用一次，就用到了\_\_call\_\_方法
+         
+            这些实例作为方法调用，要给它们传一个参数value，这个value就是请求传的参数，比如在这个例子中就是调用post请求接口时，给name字段传的值。先调用子类的clean(value)方法，将name字段的值的长度返回赋值给变量cleaned。接下来是一个判断，如果self.limit_value是可调用对象(实现了\_\_call\_\_方法的都是可调用对象，有可能self.limit_value是一个方法名，该方法返回的是一个值)，那么通过self.limit_value拿到可调用对象的值赋值给limit_value，如果不是可调用对象，直接赋值给limit_value。将limit_value（期望字符长度）、cleaned（实际字符长度）、value（实际值）构造一个字典，命名为params，接下来再调用子类的compare方法，将实际字符长度和期望字符长度做个比较，如果实际字符长度>期望字符长度，则返回True，执行raise语句，否则为False，不会执行raise语句，抛出异常
+         
+            这里的校验逻辑，在后面说到is_valid方法的时候还会提及
+            
+            django/core/validators.py
+            
+            ```python
+            @deconstructible
+            class BaseValidator:
+                message = _('Ensure this value is %(limit_value)s (it is %(show_value)s).')
+                code = 'limit_value'
+            
+                def __init__(self, limit_value, message=None):
+                    self.limit_value = limit_value
+                    if message:
+                        self.message = message
+            
+                def __call__(self, value):
+                    cleaned = self.clean(value)
+                    limit_value = self.limit_value() if callable(self.limit_value) else self.limit_value
+                    params = {'limit_value': limit_value, 'show_value': cleaned, 'value': value}
+                    if self.compare(cleaned, limit_value):
+                        raise ValidationError(self.message, code=self.code, params=params)
+            
+                def __eq__(self, other):
+                    if not isinstance(other, self.__class__):
+                        return NotImplemented
+                    return (
+                        self.limit_value == other.limit_value and
+                        self.message == other.message and
+                        self.code == other.code
+                    )
+            
+                def compare(self, a, b):
+                    return a is not b
+            
+                def clean(self, x):
+                    return x
+            
+            
+            @deconstructible
+            class MaxLengthValidator(BaseValidator):
+                message = ngettext_lazy(
+                    'Ensure this value has at most %(limit_value)d character (it has %(show_value)d).',
+                    'Ensure this value has at most %(limit_value)d characters (it has %(show_value)d).',
+                    'limit_value')
+                code = 'max_length'
+            
+                def compare(self, a, b):
+                    return a > b
+         
+                def clean(self, x):
+                 return len(x)
+            ```
+            
+            10. 所以无论是序列化器中的IntegerField类也好，还是CharField类，只要继承了Field类，只是向self.validators这个列表中添加校验器，如果在定义字段的时候，本身就传了validators值，那么自定义的校验器会放在列表的前面
+            
+            
