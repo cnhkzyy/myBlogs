@@ -280,8 +280,7 @@ rest_framework/field.py
 ```python
 class Field:
     ...
-     def __init__(self, read_only=False, write_only=False,
-              required=None, default=empty, initial=empty, 		                 source=None, label=None, help_text=None, style=None,                 error_messages=None, validators=None, allow_null=False):
+     def __init__(self, read_only=False, write_only=False, required=None, default=empty, initial=empty, 		       source=None, label=None, help_text=None, style=None,                 error_messages=None, validators=None, allow_null=False):
     ...
 ```
 
@@ -427,11 +426,9 @@ print(t.y)  #20
    class Field:
        ...
    
-       def __init__(self, read_only=False, write_only=False,
-    		required=None, default=empty, initial=empty, source=None,
-   		label=None, help_text=None, style=None, 		   	               error_messages=None, validators=None, allow_null=False):
+       def __init__(self, read_only=False, write_only=False,required=None, default=empty, initial=empty, source=None,label=None, help_text=None, style=None, 		   	 error_messages=None, validators=None, allow_null=False):
    ```
-
+   
    因此可以在定义序列化器的时候就可以自定义error_messages
 
    ![image-20211201005259840](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211201005259840.png)
