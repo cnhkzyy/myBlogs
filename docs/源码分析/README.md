@@ -426,7 +426,7 @@ print(t.y)  #20
    class Field:
        ...
    
-       def __init__(self, read_only=False, write_only=False,required=None, default=empty, initial=empty, source=None,label=None, help_text=None, style=None, 		   	 error_messages=None, validators=None, allow_null=False):
+       def __init__(self, read_only=False, write_only=False,required=None, default=empty, initial=empty,source=None,label=None, help_text=None, style=None,error_messages=None, validators=None, allow_null=False):
    ```
    
    因此可以在定义序列化器的时候就可以自定义error_messages
@@ -646,3 +646,196 @@ print(t.y)  #20
             10. 所以无论是序列化器中的IntegerField类也好，还是CharField类，只要继承了Field类，只是向self.validators这个列表中添加校验器，如果在定义字段的时候，本身就传了validators值，那么自定义的校验器会放在列表的前面
             
             
+### Serializer类源码分析
+
+#### instance
+
+在序列化过程中，将模型类对象（或者查询集），传给instance，可进行序列化操作
+
+通过序列化器对象的data属性，可以获取转化之后的字典，以获取某个项目id的详情为例
+
+projects/views.py
+
+```python
+class ProjectsDetail(View):
+
+
+    def get_object(self, pk):
+        try:
+            return Projects.objects.get(id=pk)
+        except Projects.DoesNotExist:
+            raise Http404
+
+
+    def get(self, request, pk):
+        #1.校验前端传递的pk(项目id)值，类型是否正确(正整数)，在数据中是否存在
+        #省略
+        #2.获取指定pk值的项目
+        project = self.get_object(pk)
+
+        #序列化
+        #1.通过模型类对象(或者查询集)，传给instance，可进行序列化操作
+        #2.通过序列化器ProjectSerializer对象的data属性，就可以获取转化之后的字典
+        serializer = ProjectSerializer(instance=project)
+
+        return JsonResponse(serializer.data)
+```
+
+1. ```serializer = ProjectSerializer(instance=project)```，由于ProjectSerializer继承了serializers.Serializer，而Serializer没有构造方法，它继承了父类BaseSerializer的构造方法，因此初始化的时候从父类开始
+
+   首先它会判断传入的关键字参数中有没有many字段，如果有的话执行many_init()方法，如果没有，则创建一个Serializer类
+
+   然后进行初始化，判断将传入的instance值作为实例的instance属性，判断是否有partial和context字段，如果有的话，将这些字段对应的值分别传递给对应的属性，如果没有，则传递默认值，最后它在传入的参数中去除many键值对
+
+   在初始化的同时，它会初始化一些实例方法，比如self.errors，由于实例里并没有_errors属性，因此它会弹出报错信息```msg = 'You must call `.is_valid()` before accessing `.errors`.'```，debug调试的时候可以看到errors对应的不是一个值，而是一个异常信息
+
+   ![image-20211210001625044](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211210001625044.png)
+
+   再来看self.data方法，如果有self.initial_data属性——注意BaseSerializer构造方法的第3行，只有传入data值时，才会有self.initial_data，因此它不会执行self.data方法的第一个if判断。同样，没有self._data属性，这时候，执行一个内层的if...elif...else判断：
+
+   内层if：当self.instance属性值非空，并且self._errors属性不存在的时候执行
+
+   内层elif：当self._validated_data属性存在，并且self.\_errors属性不存在的时候执行
+
+   内层else：其他情况执行
+
+   在Views.py中，我们给ProjectSerializer传了instance=project，而在初始化的时候，self.errors方法并未执行到return self._errors就提前抛出了异常，因此执行内层if的逻辑
+
+   这里要注意这个self.to_representation()并不是父类的方法，而是子类Serializer的方法
+
+   rest_framework/serializers.py
+
+   ```python
+   class BaseSerializer(Field):
+       def __init__(self, instance=None, data=empty, **kwargs):
+           self.instance = instance
+           if data is not empty:
+               self.initial_data = data
+           self.partial = kwargs.pop('partial', False)
+           self._context = kwargs.pop('context', {})
+           kwargs.pop('many', None)
+           super().__init__(**kwargs)
+           
+           
+       def __new__(cls, *args, **kwargs):
+           # We override this method in order to automagically create
+           # `ListSerializer` classes instead when `many=True` is set.
+           if kwargs.pop('many', False):
+               return cls.many_init(*args, **kwargs)
+           return super().__new__(cls, *args, **kwargs)
+       
+       
+       def to_representation(self, instance):
+           raise NotImplementedError('`to_representation()` must be implemented.')
+           
+           
+       @property
+       def data(self):
+           if hasattr(self, 'initial_data') and not hasattr(self, '_validated_data'):
+               msg = (
+                   'When a serializer is passed a `data` keyword argument you '
+                   'must call `.is_valid()` before attempting to access the '
+                   'serialized `.data` representation.\n'
+                   'You should either call `.is_valid()` first, '
+                   'or access `.initial_data` instead.'
+               )
+               raise AssertionError(msg)
+   
+           if not hasattr(self, '_data'):
+               if self.instance is not None and not getattr(self, '_errors', None):
+                   self._data = self.to_representation(self.instance)
+               elif hasattr(self, '_validated_data') and not getattr(self, '_errors', None):
+                   self._data = self.to_representation(self.validated_data)
+               else:
+                   self._data = self.get_initial()
+           return self._data
+   
+       @property
+       def errors(self):
+           if not hasattr(self, '_errors'):
+               msg = 'You must call `.is_valid()` before accessing `.errors`.'
+               raise AssertionError(msg)
+           return self._errors
+   ```
+
+   
+
+​       rest_framework/serializers.py
+
+```python
+class Serializer(BaseSerializer, metaclass=SerializerMetaclass):
+    default_error_messages = {
+        'invalid': _('Invalid data. Expected a dictionary, but got {datatype}.')
+    }
+
+    @cached_property
+    def fields(self):
+        """
+        A dictionary of {field_name: field_instance}.
+        """
+        # `fields` is evaluated lazily. We do this to ensure that we don't
+        # have issues importing modules that use ModelSerializers as fields,
+        # even if Django's app-loading stage has not yet run.
+        fields = BindingDict(self)
+        for key, value in self.get_fields().items():
+            fields[key] = value
+        return fields
+
+    @property
+    def _writable_fields(self):
+        for field in self.fields.values():
+            if not field.read_only:
+                yield field
+
+    @property
+    def _readable_fields(self):
+        for field in self.fields.values():
+            if not field.write_only:
+                yield field
+                
+                
+    @property
+    def _readable_fields(self):
+        for field in self.fields.values():
+            if not field.write_only:
+                yield field
+
+                
+    def get_fields(self):
+        """
+        Returns a dictionary of {field_name: field_instance}.
+        """
+        # Every new serializer is created with a clone of the field instances.
+        # This allows users to dynamically modify the fields on a serializer
+        # instance without affecting every other serializer instance.
+        return copy.deepcopy(self._declared_fields)	
+    
+    
+    
+    def to_representation(self, instance):
+        """
+        Object instance -> Dict of primitive datatypes.
+        """
+        ret = OrderedDict()
+        fields = self._readable_fields
+
+        for field in fields:
+            try:
+                attribute = field.get_attribute(instance)
+            except SkipField:
+                continue
+
+            # We skip `to_representation` for `None` values so that fields do
+            # not have to explicitly deal with that case.
+            #
+            # For related fields with `use_pk_only_optimization` we need to
+            # resolve the pk value.
+            check_for_none = attribute.pk if isinstance(attribute, PKOnlyObject) else attribute
+            if check_for_none is None:
+                ret[field.field_name] = None
+            else:
+                ret[field.field_name] = field.to_representation(attribute)
+
+        return ret
+```
+
