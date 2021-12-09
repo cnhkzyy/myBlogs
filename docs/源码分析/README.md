@@ -332,9 +332,9 @@ rest_framework/utils/formatting.py
        def __mod__(self, value):
            return str(self) % value
 ```
-   
+
 关于\_\_slots__：
-   
+
 默认情况下，访问一个实例的属性是通过访问该实例的\_\_dict__来实现的，如访问a.x就相当于访问a.\_\_dict\_\_['x']，而python内置的字典本质是一个哈希表，它是一种用空间换时间的数据结构，为了解决冲突的问题，当字典使用量超过2/3时，python会根据情况进行2-4倍的扩容，因此使用\_\_slots\_\_可以大幅减少实例的空间消耗。\_\_slots\_\_相当于定义的一个属性名称集合，只有在这个集合里的名称才可以绑定
 
 ```python
@@ -416,15 +416,16 @@ for循环结束后，messages还会将定义序列化器字段时自定义的err
                messages.update(getattr(cls, 'default_error_messages', {}))
    messages.update(error_messages or {})
    self.error_messages = messages
-   ```
+```
 
-   因为CharField类继承的Field类，它的\__\__init\_\_方法中定义了有error_messages位置参数
+因为CharField类继承的Field类，它的\__\__init\_\_方法中定义了有error_messages位置参数
 
-   ```python
+```python
    class Field:
        ...
    
        def __init__(self, read_only=False, write_only=False,required=None, default=empty, initial=empty,source=None,label=None, help_text=None, style=None,error_messages=None, validators=None, allow_null=False):
+
 ```
 因此可以在定义序列化器的时候就可以自定义error_messages
 
@@ -548,11 +549,10 @@ self.validators是继承Field类的属性
 ```python
          if validators is not None:
                 self.validators = list(validators)
-         ```
+```
 
-         情况二：如果Field类实例化的时候validators没有定义，那么子类CharField中调用self.validators实际上调用的是Field类的getter方法，当self没有_validators属性的时候，它会将调用self.get_validators()，这个方法返回的是空列表
-
-         ```python
+情况二：如果Field类实例化的时候validators没有定义，那么子类CharField中调用self.validators实际上调用的是Field类的getter方法，当self没有_validators属性的时候，它会将调用self.get_validators()，这个方法返回的是空列表
+```python
          @property
          def validators(self):
              if not hasattr(self, '_validators'):
@@ -566,17 +566,15 @@ self.validators是继承Field类的属性
          def get_validators(self):
              return list(self.default_validators)
 ```
-         
+
 ![image-20211207212850349](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211207212850349.png)
-         
-         
          
 9. 因此self.validators.append就是将校验器添加到一个校验器列表中，那么MaxLengthValidator类是从哪里来的？
          
 ```python
              self.validators.append(MaxLengthValidator(self.max_length, message=message))
 ```
-         
+
 查看源码，发现MaxLengthValidator是django.core.validators.py中的一个类，这个类继承了父类BaseValidator及其构造方法，又重写了父类的compare和clean方法
          
 因此MaxLengthValidator实例化的时候，可以传两个参数，第一个是位置参数limit_value，第二个是关键字参数message，实际调用中我们传的第一个是self.max_length，也就是序列化器类中字段的最大值max_length，第二个参数传的是message，是经过lazy_format格式化之后的message“请确保这个字段不能超过7个字符”
@@ -639,7 +637,7 @@ django/core/validators.py
                 def clean(self, x):
                  return len(x)
 ```
-            
+
 10. 所以无论是序列化器中的IntegerField类也好，还是CharField类，只要继承了Field类，只是向self.validators这个列表中添加校验器，如果在定义字段的时候，本身就传了validators值，那么自定义的校验器会放在列表的前面
             
             
