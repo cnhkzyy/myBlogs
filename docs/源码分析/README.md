@@ -298,15 +298,15 @@ from rest_framework.utils.formatting import lazy_format
 	name = serializers.CharField(label='项目名称', min_length=5, max_length=7, help_text='项目名称111', write_only=True)
 ```
 
-​		通过debug，可以看到message有一个固定值
+通过debug，可以看到message有一个固定值
 
 ![image-20211130234726861](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211130234726861.png)
 
 4. 进入lazy_format类
 
-   rest_framework/utils/formatting.py
+rest_framework/utils/formatting.py
 
-   ```python
+```python
    class lazy_format:
        """
        Delay formatting until it's actually needed.
@@ -331,11 +331,11 @@ from rest_framework.utils.formatting import lazy_format
    
        def __mod__(self, value):
            return str(self) % value
-   ```
+```
    
-   关于\_\_slots__：
+关于\_\_slots__：
    
-   默认情况下，访问一个实例的属性是通过访问该实例的\_\_dict__来实现的，如访问a.x就相当于访问a.\_\_dict\_\_['x']，而python内置的字典本质是一个哈希表，它是一种用空间换时间的数据结构，为了解决冲突的问题，当字典使用量超过2/3时，python会根据情况进行2-4倍的扩容，因此使用\_\_slots\_\_可以大幅减少实例的空间消耗。\_\_slots\_\_相当于定义的一个属性名称集合，只有在这个集合里的名称才可以绑定
+默认情况下，访问一个实例的属性是通过访问该实例的\_\_dict__来实现的，如访问a.x就相当于访问a.\_\_dict\_\_['x']，而python内置的字典本质是一个哈希表，它是一种用空间换时间的数据结构，为了解决冲突的问题，当字典使用量超过2/3时，python会根据情况进行2-4倍的扩容，因此使用\_\_slots\_\_可以大幅减少实例的空间消耗。\_\_slots\_\_相当于定义的一个属性名称集合，只有在这个集合里的名称才可以绑定
 
 ```python
 class Test(object):
@@ -349,20 +349,18 @@ t = Test()
 print(t.x)  #10
 print(t.y)  #20
 ```
-
-  然后看\_\_str__这个魔术方法，它会返回一个对象的描述信息。如果是实例第一次创  建，那么result=None，这时候它会格式化format_string对应的字符串，这个  format_string以及它对应的动态参数args、关键字参数kwargs，都是实例化lazy_format时带入的参数，再返回到CharField类，看看message这一行
+然后看\_\_str__这个魔术方法，它会返回一个对象的描述信息。如果是实例第一次创  建，那么result=None，这时候它会格式化format_string对应的字符串，这个  format_string以及它对应的动态参数args、关键字参数kwargs，都是实例化lazy_format时带入的参数，再返回到CharField类，看看message这一行
 
 ```python
       message = lazy_format(self.error_messages['max_length'], max_length=self.max_length)
 ```
-
-​	这时lazy_format实例化时的参数对应起来就是，   format_string=self.error_messages['max_length']，*args=max_length=self.max_length
+这时lazy_format实例化时的参数对应起来就是，   format_string=self.error_messages['max_length']，*args=max_length=self.max_length
 
 5. 先看self.error_messages，发现error_messages是子类CharField从父类Field继承过来的属性
 
-   rest_framework/fields.py
+rest_framework/fields.py
 
-   ```python
+```python
    class Field:
        _creation_counter = 0
    
@@ -380,15 +378,15 @@ print(t.y)  #20
                messages.update(getattr(cls, 'default_error_messages', {}))
            messages.update(error_messages or {})
            self.error_messages = messages
-   ```
+```
 
-   注解说这一段代码是收集实例自身和父类的error message，父类的容易理解，就是通过使用getattr拿到类属性default_error_messages，怎么收集自身的error message？看下self.\_\_class__.\_\_mro\_\_的含义，它表示拿到该类以及所有父类，而reversed是按照继承的优先级排序，基类object第一位，最后是该类本身
+注解说这一段代码是收集实例自身和父类的error message，父类的容易理解，就是通过使用getattr拿到类属性default_error_messages，怎么收集自身的error message？看下self.\_\_class__.\_\_mro\_\_的含义，它表示拿到该类以及所有父类，而reversed是按照继承的优先级排序，基类object第一位，最后是该类本身
 
-   ![image-20211201003040545](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211201003040545.png)
+![image-20211201003040545](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211201003040545.png)
 
-   刚好CharField在实例化的时候，就继承了父类的构造方法，也就是说CharField实例化的时候，会先从父类Field中取出default_error_messages对应的字典，作为键值对添加到空字典messages中，如果没有类属性default_error_messages，则不会新增，然后从该类CharField中取出default_error_messages对应的字典，作为键值对更新到字典messages中
+刚好CharField在实例化的时候，就继承了父类的构造方法，也就是说CharField实例化的时候，会先从父类Field中取出default_error_messages对应的字典，作为键值对添加到空字典messages中，如果没有类属性default_error_messages，则不会新增，然后从该类CharField中取出default_error_messages对应的字典，作为键值对更新到字典messages中
 
-   ```python
+```python
    class CharField(Field):
         default_error_messages = {
            'invalid': _('Not a valid string.'),
@@ -409,11 +407,11 @@ print(t.y)  #20
                self.validators.append(
                    MaxLengthValidator(self.max_length, message=message))
            ...
-   ```
+```
 
-   for循环结束后，messages还会将定义序列化器字段时自定义的error_messages添加进来，如果error_messages没有自定义，则不会新增
+for循环结束后，messages还会将定义序列化器字段时自定义的error_messages添加进来，如果error_messages没有自定义，则不会新增
 
-   ```python
+```python
     for cls in reversed(self.__class__.__mro__):
                messages.update(getattr(cls, 'default_error_messages', {}))
    messages.update(error_messages or {})
@@ -427,47 +425,46 @@ print(t.y)  #20
        ...
    
        def __init__(self, read_only=False, write_only=False,required=None, default=empty, initial=empty,source=None,label=None, help_text=None, style=None,error_messages=None, validators=None, allow_null=False):
-   ```
-   
-   因此可以在定义序列化器的时候就可以自定义error_messages
+```
+因此可以在定义序列化器的时候就可以自定义error_messages
 
-   ![image-20211201005259840](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211201005259840.png)
+![image-20211201005259840](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211201005259840.png)
 
-   通过debug，最终看到的error_messages是这样的
+通过debug，最终看到的error_messages是这样的
 
-   ![image-20211201005743037](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211201005743037.png)
+![image-20211201005743037](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211201005743037.png)
 
 6. 问题来了，我们明明定义的default_error_messages是英文，怎么会显示简体中文？
 
-   ![image-20211201005919279](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211201005919279.png)
+![image-20211201005919279](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211201005919279.png)
 
-   需要注意到，default_error_messages每个键对应的值外面都有一个_()，我们点击\_查看源码，这个实际上是django自带的翻译器
+需要注意到，default_error_messages每个键对应的值外面都有一个_()，我们点击\_查看源码，这个实际上是django自带的翻译器
 
-   django/utils/translation/\_\_init\_\_.py
+django/utils/translation/\_\_init\_\_.py
 
-   ```python
+```python
    gettext_lazy = lazy(gettext, str)
-   ```
+```
 
-   至于为什么跳转到了gettext_lazy而不是\_，因为在fields.py文件一开始导入的时候就给gettext_lazy起了个别名\_
+至于为什么跳转到了gettext_lazy而不是\_，因为在fields.py文件一开始导入的时候就给gettext_lazy起了个别名\_
 
-   ![image-20211201010607137](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211201010607137.png)
+![image-20211201010607137](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211201010607137.png)
 
-   7. 这时可以理解当self.max_length有定义时，message为什么是“请确保这个字段不能超过7个字符”。因为代码先会从error_messages字典中取出键max_length对应的值，将它翻译成简体中文：请确保这个字段不能超过 {max_length} 个字符，然后通过lazy_format函数将我们定义的max_length传给它
+7. 这时可以理解当self.max_length有定义时，message为什么是“请确保这个字段不能超过7个字符”。因为代码先会从error_messages字典中取出键max_length对应的值，将它翻译成简体中文：请确保这个字段不能超过 {max_length} 个字符，然后通过lazy_format函数将我们定义的max_length传给它
 
-      ![image-20211201011106849](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211201011106849.png)
+![image-20211201011106849](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211201011106849.png)
 
-      ![image-20211201010856118](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211201010856118.png)
+![image-20211201010856118](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211201010856118.png)
 
-      8. 再来看下下一行中，是往self.validators这个校验器列表中添加数据
+8. 再来看下下一行中，是往self.validators这个校验器列表中添加数据
 
-         ```python
+```python
          self.validators.append(MaxLengthValidator(self.max_length, message=message))
-         ```
+```
 
-         self.validators是继承Field类的属性
+self.validators是继承Field类的属性
 
-         ```python
+```python
          class Field:
              ...
              default_validators = []
@@ -496,11 +493,11 @@ print(t.y)  #20
                   return list(self.default_validators)
              ...
              
-         ```
+```
 
-         @property负责把一个getter方法变为属性，因为如果使用self.属性=属性值的方法，容易把属性暴露出去，导致属性值可以任意修改，而使用self.validators()直接调用getter方法又略显负责，因此可以给getter方法加上@property装饰器，把它作为一个属性调用，相当于
+@property负责把一个getter方法变为属性，因为如果使用self.属性=属性值的方法，容易把属性暴露出去，导致属性值可以任意修改，而使用self.validators()直接调用getter方法又略显负责，因此可以给getter方法加上@property装饰器，把它作为一个属性调用，相当于
 
-         ```python
+```python
          self = Field()
          
          改变之前：
@@ -508,11 +505,11 @@ print(t.y)  #20
          
          改变之后：
          validators = self.validators
-         ```
+```
 
-         如果要给变量赋值，使用setter方法self.validators('值')略显麻烦，因此使用@validators.setter装饰器把对应的setter方法变成属性赋值，相当于
+如果要给变量赋值，使用setter方法self.validators('值')略显麻烦，因此使用@validators.setter装饰器把对应的setter方法变成属性赋值，相当于
 
-         ```python
+```python
          self = Field()
          
          改变之前：
@@ -520,13 +517,13 @@ print(t.y)  #20
          
          改变之后：
          self.validators = ['xxx']
-         ```
+```
 
-         分别两种情况：
+分别两种情况：
 
-         情况一：如果Field类实例化的时候validators有定义，也就是我们在序列化器中定义字段的时候有自定义validators值，如
+情况一：如果Field类实例化的时候validators有定义，也就是我们在序列化器中定义字段的时候有自定义validators值，如
 
-         ```python
+```python
          #创建自定义校验器
          #第一个参数为字段的值
          def is_unique_project_name(name):
@@ -544,11 +541,11 @@ print(t.y)  #20
                                           validators=[UniqueValidator(queryset=Projects.objects.all(), message='项目名不能重复'),
                                                       is_unique_project_name])
               ...
-         ```
+```
 
-         那么在实例化的时候，会判断validators是否为空，如果不为空，则直接通过调用self.validators调用setter方法给属性赋值，这个值就是将位置参数validators的值转为列表
+那么在实例化的时候，会判断validators是否为空，如果不为空，则直接通过调用self.validators调用setter方法给属性赋值，这个值就是将位置参数validators的值转为列表
 
-         ```python
+```python
          if validators is not None:
                 self.validators = list(validators)
          ```
@@ -568,33 +565,33 @@ print(t.y)  #20
          
          def get_validators(self):
              return list(self.default_validators)
-         ```
+```
          
-         ![image-20211207212850349](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211207212850349.png)
+![image-20211207212850349](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211207212850349.png)
          
          
          
-         9. 因此self.validators.append就是将校验器添加到一个校验器列表中，那么MaxLengthValidator类是从哪里来的？
+9. 因此self.validators.append就是将校验器添加到一个校验器列表中，那么MaxLengthValidator类是从哪里来的？
          
-            ```python
+```python
              self.validators.append(MaxLengthValidator(self.max_length, message=message))
-            ```
+```
          
-            查看源码，发现MaxLengthValidator是django.core.validators.py中的一个类，这个类继承了父类BaseValidator及其构造方法，又重写了父类的compare和clean方法
+查看源码，发现MaxLengthValidator是django.core.validators.py中的一个类，这个类继承了父类BaseValidator及其构造方法，又重写了父类的compare和clean方法
          
-            因此MaxLengthValidator实例化的时候，可以传两个参数，第一个是位置参数limit_value，第二个是关键字参数message，实际调用中我们传的第一个是self.max_length，也就是序列化器类中字段的最大值max_length，第二个参数传的是message，是经过lazy_format格式化之后的message“请确保这个字段不能超过7个字符”
+因此MaxLengthValidator实例化的时候，可以传两个参数，第一个是位置参数limit_value，第二个是关键字参数message，实际调用中我们传的第一个是self.max_length，也就是序列化器类中字段的最大值max_length，第二个参数传的是message，是经过lazy_format格式化之后的message“请确保这个字段不能超过7个字符”
          
-            然后实例化的时候，会给MaxLengthValidator增加属性limit_value，如果message存在的时候，会给它增加属性message
+然后实例化的时候，会给MaxLengthValidator增加属性limit_value，如果message存在的时候，会给它增加属性message
          
-            这个\_\_call\_\_方法的意义是，将一个实例作为一个方法来调用，如上所述，self.validators这个校验器列表中放的元素都是一个个校验器实例对象，比如MaxLengthValidator()、MinLengthValidator()等，真正要用的时候，将这些对象再调用一次，就用到了\_\_call\_\_方法
+这个\_\_call\_\_方法的意义是，将一个实例作为一个方法来调用，如上所述，self.validators这个校验器列表中放的元素都是一个个校验器实例对象，比如MaxLengthValidator()、MinLengthValidator()等，真正要用的时候，将这些对象再调用一次，就用到了\_\_call\_\_方法
          
-            这些实例作为方法调用，要给它们传一个参数value，这个value就是请求传的参数，比如在这个例子中就是调用post请求接口时，给name字段传的值。先调用子类的clean(value)方法，将name字段的值的长度返回赋值给变量cleaned。接下来是一个判断，如果self.limit_value是可调用对象(实现了\_\_call\_\_方法的都是可调用对象，有可能self.limit_value是一个方法名，该方法返回的是一个值)，那么通过self.limit_value拿到可调用对象的值赋值给limit_value，如果不是可调用对象，直接赋值给limit_value。将limit_value（期望字符长度）、cleaned（实际字符长度）、value（实际值）构造一个字典，命名为params，接下来再调用子类的compare方法，将实际字符长度和期望字符长度做个比较，如果实际字符长度>期望字符长度，则返回True，执行raise语句，否则为False，不会执行raise语句，抛出异常
+这些实例作为方法调用，要给它们传一个参数value，这个value就是请求传的参数，比如在这个例子中就是调用post请求接口时，给name字段传的值。先调用子类的clean(value)方法，将name字段的值的长度返回赋值给变量cleaned。接下来是一个判断，如果self.limit_value是可调用对象(实现了\_\_call\_\_方法的都是可调用对象，有可能self.limit_value是一个方法名，该方法返回的是一个值)，那么通过self.limit_value拿到可调用对象的值赋值给limit_value，如果不是可调用对象，直接赋值给limit_value。将limit_value（期望字符长度）、cleaned（实际字符长度）、value（实际值）构造一个字典，命名为params，接下来再调用子类的compare方法，将实际字符长度和期望字符长度做个比较，如果实际字符长度>期望字符长度，则返回True，执行raise语句，否则为False，不会执行raise语句，抛出异常
          
-            这里的校验逻辑，在后面说到is_valid方法的时候还会提及
+这里的校验逻辑，在后面说到is_valid方法的时候还会提及
             
-            django/core/validators.py
+django/core/validators.py
             
-            ```python
+```python
             @deconstructible
             class BaseValidator:
                 message = _('Ensure this value is %(limit_value)s (it is %(show_value)s).')
@@ -641,9 +638,9 @@ print(t.y)  #20
          
                 def clean(self, x):
                  return len(x)
-            ```
+```
             
-            10. 所以无论是序列化器中的IntegerField类也好，还是CharField类，只要继承了Field类，只是向self.validators这个列表中添加校验器，如果在定义字段的时候，本身就传了validators值，那么自定义的校验器会放在列表的前面
+10. 所以无论是序列化器中的IntegerField类也好，还是CharField类，只要继承了Field类，只是向self.validators这个列表中添加校验器，如果在定义字段的时候，本身就传了validators值，那么自定义的校验器会放在列表的前面
             
             
 ### Serializer类源码分析
@@ -683,15 +680,15 @@ class ProjectsDetail(View):
 
 1. ```serializer = ProjectSerializer(instance=project)```，由于ProjectSerializer继承了serializers.Serializer，而Serializer没有构造方法，它继承了父类BaseSerializer的构造方法，因此初始化的时候从父类开始
 
-   首先它会判断传入的关键字参数中有没有many字段，如果有的话执行many_init()方法，如果没有，则创建一个Serializer类
+首先它会判断传入的关键字参数中有没有many字段，如果有的话执行many_init()方法，如果没有，则创建一个Serializer类
 
-   然后进行初始化，判断将传入的instance值作为实例的instance属性，判断是否有partial和context字段，如果有的话，将这些字段对应的值分别传递给对应的属性，如果没有，则传递默认值，最后它在传入的参数中去除many键值对
+然后进行初始化，判断将传入的instance值作为实例的instance属性，判断是否有partial和context字段，如果有的话，将这些字段对应的值分别传递给对应的属性，如果没有，则传递默认值，最后它在传入的参数中去除many键值对
 
-   在初始化的同时，它会初始化一些实例方法，比如self.errors，由于实例里并没有_errors属性，因此它会弹出报错信息```msg = 'You must call `.is_valid()` before accessing `.errors`.'```，debug调试的时候可以看到errors对应的不是一个值，而是一个异常信息
+在初始化的同时，它会初始化一些实例方法，比如self.errors，由于实例里并没有_errors属性，因此它会弹出报错信息```msg = 'You must call `.is_valid()` before accessing `.errors`.'```，debug调试的时候可以看到errors对应的不是一个值，而是一个异常信息
 
-   ![image-20211210001625044](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211210001625044.png)
+![image-20211210001625044](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20211210001625044.png)
 
-   再来看self.data方法，如果有self.initial_data属性——注意BaseSerializer构造方法的第3行，只有传入data值时，才会有self.initial_data，因此它不会执行self.data方法的第一个if判断。同样，没有self._data属性，这时候，执行一个内层的if...elif...else判断：
+再来看self.data方法，如果有self.initial_data属性——注意BaseSerializer构造方法的第3行，只有传入data值时，才会有self.initial_data，因此它不会执行self.data方法的第一个if判断。同样，没有self._data属性，这时候，执行一个内层的if...elif...else判断：
 
    内层if：当self.instance属性值非空，并且self._errors属性不存在的时候执行
 
@@ -699,13 +696,13 @@ class ProjectsDetail(View):
 
    内层else：其他情况执行
 
-   在Views.py中，我们给ProjectSerializer传了instance=project，而在初始化的时候，self.errors方法并未执行到return self._errors就提前抛出了异常，因此执行内层if的逻辑
+在Views.py中，我们给ProjectSerializer传了instance=project，而在初始化的时候，self.errors方法并未执行到return self._errors就提前抛出了异常，因此执行内层if的逻辑
 
-   这里要注意这个self.to_representation()并不是父类的方法，而是子类Serializer的方法
+这里要注意这个self.to_representation()并不是父类的方法，而是子类Serializer的方法
 
-   rest_framework/serializers.py
+rest_framework/serializers.py
 
-   ```python
+```python
    class BaseSerializer(Field):
        def __init__(self, instance=None, data=empty, **kwargs):
            self.instance = instance
@@ -756,11 +753,11 @@ class ProjectsDetail(View):
                msg = 'You must call `.is_valid()` before accessing `.errors`.'
                raise AssertionError(msg)
            return self._errors
-   ```
+```
 
    
 
-​       rest_framework/serializers.py
+rest_framework/serializers.py
 
 ```python
 class Serializer(BaseSerializer, metaclass=SerializerMetaclass):
