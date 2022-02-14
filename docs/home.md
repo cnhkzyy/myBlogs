@@ -38,4 +38,4 @@ Git [文档](/Git/)
 
 ## Spring Boot
 
-Spring Boot项目 [文档](/Spring Boot项目/)
+Spring Boot项目 [文档](/Spring_Boot项目/)
