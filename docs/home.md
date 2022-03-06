@@ -39,3 +39,5 @@ Git [文档](/Git/)
 ## Spring Boot
 
 Spring Boot项目 [文档](/Spring_Boot项目/)
+
+Spring Boot问题集锦 [文档](/Spring_Boot问题集锦/)
