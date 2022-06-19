@@ -1512,7 +1512,7 @@ def get_count_by_project(datas):
     return datas_list
 ```
 
-#### 套件总数
+#### 获取套件总数
 
 apps/projects/utils.py
 
