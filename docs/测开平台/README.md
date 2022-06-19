@@ -1187,3 +1187,411 @@ class Reports(BaseModel):
 
 
 
+### 逻辑删除项目
+
+apps/projects/views.py
+
+```python
+class ProjectsViewSet(ModelViewSet):
+    '''
+    list：返回项目（多个）列表数据
+    create：创建项目
+    retrieve：返回项目（单个）详情数据
+    update：更新（全）项目
+    partial_update：更新（部分）项目
+    destory：删除项目
+    names：返回所有项目ID和名称
+    interfaces：返回某个项目的所有接口信息（ID和名称）
+    '''
+    queryset = Projects.objects.filter(is_delete=False)
+    serializer_class = ProjectModelSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    ordering_fields = ('id', 'name')
+
+
+    def perform_destroy(self, instance: Projects):
+        instance.is_delete = True
+        instance.save()   #逻辑删除
+```
+
+### 获取所有的项目名
+
+#### 应用场景
+
+新增接口的时候
+
+![image-20220619194707312](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20220619194707312.png)
+
+#### 代码实现
+
+apps/projects/serializer.py
+
+```python
+class ProjectsNameSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Projects
+        fields = ('id', 'name')
+```
+
+为什么需要项目id值？
+
+因为apps/interfaces/models.py中有一个外键project，传入的是对象，保存的是project_id
+
+```python
+class Interfaces(BaseModel):
+    id = models.AutoField(verbose_name='id主键', primary_key=True, help_text='id主键')
+    name = models.CharField('接口名称', max_length=200, unique=True, help_text='接口名称')
+    project = models.ForeignKey('projects.Projects', on_delete=models.CASCADE, related_name='interfaces', help_text='所属项目')
+    tester = models.CharField('测试人员', max_length=50, help_text='测试人员')
+    desc = models.CharField('简要描述', max_length=200, null=True, blank=True, help_text='简要描述')
+
+
+    class Meta:
+        db_table = 'tb_interfaces'
+        verbose_name = '接口信息'
+        verbose_name_plural = verbose_name
+```
+
+apps/projects/views.py
+
+```python
+@action(methods=['get'], detail=False)
+def names(self, request, *args, **kwargs):
+    queryset = self.get_queryset()
+    serializer = ProjectsNameSerializer(instance=queryset, many=True)
+    return Response(serializer.data)
+```
+
+### 获取所有的接口信息
+
+#### 应用场景
+
+新增用例的时候。先通过项目获取接口的信息，再选择接口新增用例
+
+#### 方式一：使用序列化器
+
+![image-20220619195713440](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20220619195713440.png)
+
+关于related_name
+
+如果apps/interfaces/model.py中不定义related_name，那么在apps/projects/serializer.py中要使用interfaces_set，如果定义了related_name='interfaces'，那么interfaces_set要改成interfaces，到时候接口会展示一个字段：interfaces
+
+apps/interfaces/model.py
+
+```python
+class Interfaces(BaseModel):
+    id = models.AutoField(verbose_name='id主键', primary_key=True, help_text='id主键')
+    name = models.CharField('接口名称', max_length=200, unique=True, help_text='接口名称')
+    project = models.ForeignKey('projects.Projects', on_delete=models.CASCADE,
+related_name='interfaces', help_text='所属项目')
+    tester = models.CharField('测试人员', max_length=50, help_text='测试人员')
+    desc = models.CharField('简要描述', max_length=200, null=True, blank=True, help_text='简要描述')
+```
+
+apps/projects/serializer.py
+
+```python
+class InterfaceNameSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Interfaces
+        fields = ('id', 'name', 'tester')
+
+
+class InterfacesByProjectIdSerializer(serializers.ModelSerializer):
+    # interfaces_set = InterfaceNameSerializer(read_only=True, many=True)
+    interfaces = InterfaceNameSerializer(read_only=True, many=True)
+
+
+    class Meta:
+        model = Projects
+        # fields = ('id', 'interfaces_set')
+        fields = ('id', 'interfaces')
+```
+
+apps/projects/views.py
+
+```python
+@action(methods=['get'], detail=True)
+def interfaces(self, request, pk=None):
+    serializer = InterfacesByProjectIdSerializer(self.get_object())
+    return Response(data=serializer.data)
+```
+
+可以看到项目id=1的接口信息里的响应结果多了一个字段：interfaces
+
+![image-20220619205257567](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20220619205257567.png)
+
+ 
+
+#### 方式二：手动定义
+
+不使用序列化器定义，手动定义，可以避免这个字段
+
+apps/projects/views.py
+
+```python
+@action(methods=['get'], detail=True)
+def interfaces(self, request, pk=None):
+    interface_objs = Interfaces.objects.filter(project_id=pk, is_delete=False)
+    one_list = []
+    for obj in interface_objs:
+        one_list.append({
+            'id': obj.id,
+            'name': obj.name
+        })
+        # serializer = InterfacesByProjectIdSerializer(self.get_object())
+        return Response(data=one_list)
+    # return Response(data=serializer.data)
+```
+
+![image-20220619224315849](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20220619224315849.png)
+
+
+
+### 获取项目列表信息
+
+#### 应用场景
+
+获取项目列表功能，需要做的是：
+
+1. 把时间格式化
+
+2. 鼠标悬浮在项目名字上面会自动获取项目对应的接口数、套件数、用例数、配置数
+
+![image-20220619224823918](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20220619224823918.png)
+
+![image-20220619225222126](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20220619225222126.png)
+
+
+
+#### 代码实现
+
+对serializer.data进行修改，使得它能实现时间格式化，并自动获取项目对应的接口数、套件数、用例数、配置数。通过在list方法中，将serializer.data传入方法get_count_by_project来实现这一目的
+
+apps/projects/views.py
+
+```python
+def list(self, request, *args, **kwargs):
+    queryset = self.filter_queryset(self.get_queryset())
+
+    page = self.paginate_queryset(queryset)
+    if page is not None:
+        serializer = self.get_serializer(page, many=True)
+        datas = serializer.data
+        datas = get_count_by_project(datas)
+        return self.get_paginated_response(datas)
+
+    serializer = self.get_serializer(queryset, many=True)
+    datas = serializer.data
+    datas = get_count_by_project(datas)
+    return Response(datas)
+```
+
+
+
+#### 创建时间格式化
+
+1. 存放在数据库的时间是UTC时间，如2021-11-21 03:07:58.947151，读取出来后会自动转化为东八区时间
+2. 对取出来的时间进行格式化
+
+apps/projects/utils.py
+
+```python
+def get_count_by_project(datas):
+    datas_list = []
+    for item in datas:
+        match = re.search(r'(.*)T(.*)\..*?', item['create_time'])
+        item['create_time'] = match.group(1) + ' ' +  match.group(2)
+    	datas_list.append(item)
+    return datas_list
+```
+
+#### 获取接口总数
+
+apps/projects/utils.py
+
+```python
+def get_count_by_project(datas):
+    datas_list = []
+    for item in datas:
+        match = re.search(r'(.*)T(.*)\..*?', item['create_time'])
+        item['create_time'] = match.group(1) + ' ' +  match.group(2)
+
+        project_id = item['id']
+        #1.values('id')：根据interfaces中的id分组
+        #2.annotate：对分组后的数据统计testcases中信息，testcases为设置别名
+        #3.filter对分组后的信息进行过滤
+        interfaces_testcases_objs = Interfaces.objects.values('id').annotate(testcases=Count('testcases')).filter(project_id=project_id, is_delete=False)
+        #接口总数
+        interfaces_count = interfaces_testcases_objs.count()
+        datas_list.append(item)
+    return datas_list
+```
+
+debug查看interfaces_testcases_objs返回的是一个查询集：
+
+id：接口id为1
+
+testcases: 接口id为1的用例数量为1
+
+![image-20220619233542575](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20220619233542575.png)
+
+原生sql可以使用interfaces_testcases_objs.query查看
+
+![image-20220619233716232](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20220619233716232.png)
+
+```mysql
+SELECT `tb_interfaces`.`id`, COUNT(`tb_testcases`.`id`) AS `testcases` FROM `tb_interfaces` LEFT OUTER JOIN `tb_testcases` ON (`tb_interfaces`.`id` = `tb_testcases`.`interface_id`) WHERE (NOT `tb_interfaces`.`is_delete` AND `tb_interfaces`.`project_id` = 1) GROUP BY `tb_interfaces`.`id` ORDER BY NULL
+```
+
+
+
+#### 获取用例总数
+
+apps/projects/utils.py
+
+```python
+def get_count_by_project(datas):
+    datas_list = []
+    for item in datas:
+        match = re.search(r'(.*)T(.*)\..*?', item['create_time'])
+        item['create_time'] = match.group(1) + ' ' +  match.group(2)
+
+        project_id = item['id']
+        #1.values('id')：根据interfaces中的id分组
+        #2.annotate：对分组后的数据统计testcases中信息，testcases为设置别名
+        #3.filter对分组后的信息进行过滤
+        interfaces_testcases_objs = Interfaces.objects.values('id').annotate(testcases=Count('testcases')).\
+            filter(project_id=project_id, is_delete=False)
+        #接口总数
+        interfaces_count = interfaces_testcases_objs.count()
+        #用例总数
+        testcases_count = 0
+        for one_dict in interfaces_testcases_objs:
+            testcases_count += one_dict['testcases']
+            
+        datas_list.append(item)
+    return datas_list
+```
+
+#### 获取配置总数
+
+apps/projects/utils.py
+
+```python
+def get_count_by_project(datas):
+    datas_list = []
+    for item in datas:
+        match = re.search(r'(.*)T(.*)\..*?', item['create_time'])
+        item['create_time'] = match.group(1) + ' ' +  match.group(2)
+
+        project_id = item['id']
+        #1.values('id')：根据interfaces中的id分组
+        #2.annotate：对分组后的数据统计testcases中信息，testcases为设置别名
+        #3.filter对分组后的信息进行过滤
+        interfaces_testcases_objs = Interfaces.objects.values('id').annotate(testcases=Count('testcases')).\
+            filter(project_id=project_id, is_delete=False)
+        #接口总数
+        interfaces_count = interfaces_testcases_objs.count()
+        #用例总数
+        testcases_count = 0
+        for one_dict in interfaces_testcases_objs:
+            testcases_count += one_dict['testcases']
+
+        #interfaces_configures_objs是一个查询集，每个元素表示不同接口对应的配置数量
+        interfaces_configures_objs = Interfaces.objects.values('id').annotate(configures=Count('configures')). \
+            filter(project_id=project_id, is_delete=False)
+
+        #配置总数
+        #将不同接口对应的配置数量相加
+        configures_count = 0
+        for one_dict in interfaces_configures_objs:
+            configures_count += one_dict['configures']
+            
+        datas_list.append(item)
+    return datas_list
+```
+
+#### 套件总数
+
+apps/projects/utils.py
+
+```python
+def get_count_by_project(datas):
+    datas_list = []
+    for item in datas:
+        match = re.search(r'(.*)T(.*)\..*?', item['create_time'])
+        item['create_time'] = match.group(1) + ' ' +  match.group(2)
+
+        project_id = item['id']
+        #1.values('id')：根据interfaces中的id分组
+        #2.annotate：对分组后的数据统计testcases中信息，testcases为设置别名
+        #3.filter对分组后的信息进行过滤
+        interfaces_testcases_objs = Interfaces.objects.values('id').annotate(testcases=Count('testcases')).\
+            filter(project_id=project_id, is_delete=False)
+        #接口总数
+        interfaces_count = interfaces_testcases_objs.count()
+        #用例总数
+        testcases_count = 0
+        for one_dict in interfaces_testcases_objs:
+            testcases_count += one_dict['testcases']
+
+        interfaces_configures_objs = Interfaces.objects.values('id').annotate(configures=Count('configures')). \
+            filter(project_id=project_id, is_delete=False)
+
+        #配置总数
+        configures_count = 0
+        for one_dict in interfaces_configures_objs:
+            configures_count += one_dict['configures']
+
+        #套件总数
+        testsuites_count = TestSuites.objects.filter(project_id=project_id, is_delete=False).count()
+
+        #将数据添加进item字典
+        item['iterfaces'] = interfaces_count
+        item['testsuites'] = testsuites_count
+        item['testcases'] = testcases_count
+        item['configures'] = configures_count
+
+        datas_list.append(item)
+    return datas_list
+```
+
+#### 测试接口
+
+获取项目列表接口里，已经有了接口总数、套件总数、用例总数、配置总数，并且创建时间已经格式化
+
+![image-20220619235229915](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20220619235229915.png)
+
+### 分页
+
+#### 自定义分页
+
+utils/pagination.py
+
+```python
+from rest_framework import pagination
+
+class PageNumberPaginationManual(pagination.PageNumberPagination):
+    max_page_size = 50
+    page_size_query_param = 'size'
+    #方便在线接口文档查看描述信息
+    page_query_description = '第几页'
+    page_size_query_description = '每页几条'
+
+
+    def get_paginated_response(self, data):
+        response = super(PageNumberPaginationManual, self).get_paginated_response(data)
+        response.data['total_pages'] = self.page.paginator.num_pages
+        response.data['current.page_num'] = self.page.number
+        return response
+```
+
+#### 测试接口
+
+![image-20220620001623610](http://becktuchuang.oss-cn-beijing.aliyuncs.com/img/image-20220620001623610.png)
+
+
+
+
+
