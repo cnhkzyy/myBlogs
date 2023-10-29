@@ -106,7 +106,7 @@ CoreOS、Atomic、Ubuntu Core等 ![image-20231029132718300](https://becktuchuang
 
 Rancher、ContainerShip、Portainer
 
-![image-20231029133636644](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291336713.png)
+![image-20231029133636644](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291444029.png)
 
 #### (3) 基于容器的PaaS
 
