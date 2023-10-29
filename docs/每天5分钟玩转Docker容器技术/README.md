@@ -204,7 +204,7 @@ docker run -d -p 80:80 httpd  端口映射，格式为：主机(宿主)端口:�
 
 ## 第2章 容器核心知识
 
-### 1 What — 什么是容器
+### 1. What — 什么是容器
 
 > 容器是一种轻量级、可移植、自包含的软件打包技术，使应用程序可以在几乎任何地方以相同的方式运行。Container=集装箱，翻译成容器
 
@@ -344,31 +344,49 @@ docker ps 或者 docker container ls 显示容器正在运行
 
 ![image-20231029143954805](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291439904.png)
 
-## 
+## 第3章 Docker 镜像
 
+### 1. 镜像的内部结构
 
+#### (1) hello-world — 最小的镜像
+
+hello-world是Docker官方提供的一个镜像，通常用来验证Docker是否安装成功
 
 ```
-docker pull hello-world从Docker Hub下载
-docker images查看镜像信息
-docker run hello-world运行
+docker pull hello-world  #从Docker Hub下载
+docker images  #查看镜像信息
+docker run hello-world  #运行
 ```
 
 hello-world 的 Dockerfile
 
-
-
 ```
-FROM scratch此镜像是从白手起家，从 0 开始构建
-COPY hello /将文件“hello”复制到镜像的根目录。
-CMD ["/hello"]
+FROM scratch  #此镜像是从白手起家，从 0 开始构建
+COPY hello /  #将文件“hello”复制到镜像的根目录。
+CMD ["/hello"] #容器启动时，执行/hello
 ```
 
-**3.1.2 base 镜像**
+#### (2) base 镜像
 
-centos的镜像-标准的base镜像
+所谓的 base 镜像：
 
+(1) 不依赖其他镜像，从 scratch 构建
 
+(2) 其他镜像可以之为基础进行扩展
+
+以CentOS为例考察base镜像包含哪些内
+
+下载镜像：
+
+```shell
+docker pull centos
+```
+
+查看镜像信息
+
+![image-20231029145813722](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291458784.png)
+
+Centos的镜像：标准的base镜像
 
 ```
 FROM scratch
@@ -376,13 +394,9 @@ ADD centos-7-docker.tar.xz /
 CMD ["/bin/bash"]
 ```
 
-所谓的 base 镜像：
 
-　　1、不依赖其他镜像，从 scratch 构建。
 
-　　2、其他镜像可以之为基础进行扩展。
-
-**3.1.3 镜像为什么这么小？（一个centos只有200M）**
+#### (3) 镜像为什么这么小（一个centos只有200M）
 
 linux操作系统由**内核空间**和**用户空间**组成
 
@@ -392,104 +406,106 @@ linux操作系统由**内核空间**和**用户空间**组成
 
 对于base镜像来说，底层直接用 Host 的 kernel，自己只需要提供 rootfs 就行
 
-[![img](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291342954.png)](https://img2018.cnblogs.com/i-beta/1381066/201912/1381066-20191216104543130-1090738469.png)
+![image-20231029150113896](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291501966.png)
 
  
 
- 
+#### (4) 为什么镜像可以运行在不同的 linux 发行版本上
 
-**3.1.4 为什么镜像可以运行在不同的 linux 发行版本上**
+不同Linux发行版的区别主要就是roots，Linux kernel差别不大
 
-不同Linux发行版的区别主要就是roots，Linux kernel差别不大。
+base镜像只是在用户控件与发行版一致，kernel版本与发行版是不同的。比如centos使用3.x.x的kernel，但是Docker Host是4.x.x的话，容器的kernel版本与Host一致
 
-base镜像只是在用户控件与发行版一致，kernel版本与发行版是不同的。比如centos使用3.x.x的kernel，但是Docker Host是4.x.x的话，容器的kernel版本与Host一致。
+![image-20231029150453349](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291504406.png)
 
-容器只能使用 Host 的 kernel，并且不能修改。所以如果容器对kernel版本有要求，则不建议用容器，虚拟机更合适。
+容器只能使用 Host 的 kernel，并且不能修改。所以如果容器对kernel版本有要求，则不建议用容器，虚拟机更合适
 
-**3.1.5 镜像的分层结构**
+#### (5) 镜像的分层结构
 
-Docker Hub 中 99% 的镜像都是通过在 base 镜像中安装和配置需要的软件构建出来的。
+Docker Hub 中 99% 的镜像都是通过在 base 镜像中安装和配置需要的软件构建出来的
 
-新镜像是从 base 镜像一层一层叠加生成的。每安装一个软件，就在现有镜像的基础上增加一层。
+新镜像是从 base 镜像一层一层叠加生成的。每安装一个软件，就在现有镜像的基础上增加一层
 
 最大的一个好处就是 - 共享资源
 
-　　1、有多个镜像都从相同的 base 镜像构建而来，那么 Docker Host 只需在磁盘上保存一份 base 镜像
-　　2、同时内存中也只需加载一份 base 镜像，就可以为所有容器服务了。
+(1) 有多个镜像都从相同的 base 镜像构建而来，那么 Docker Host 只需在磁盘上保存一份 base 镜像
+
+(2) 同时内存中也只需加载一份 base 镜像，就可以为所有容器服务了
 
 如果多个容器共享一份基础镜像，当某个容器修改了基础镜像的内容，比如 /etc 下的文件，其他容器下的/etc不会被修改
 
-**3.1.6 可写的容器层**
+**可写的容器层**
 
 [![img](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291342997.png)](https://img2018.cnblogs.com/i-beta/1381066/201912/1381066-20191216105221514-1065718843.png)
 
- 
-
- 
-
-- 当容器启动时，一个新的可写层被加载到镜像的顶部。
-- 这一层通常被称作“容器层”，“容器层”之下的都叫“镜像层”。 
-- 所有对容器的改动 - 无论添加、删除、还是修改文件都只会发生在容器层中。 
-- 只有容器层是可写的，容器层下面的所有镜像层都是只读的。 
+- 当容器启动时，一个新的可写层被加载到镜像的顶部
+- 这一层通常被称作“容器层”，“容器层”之下的都叫“镜像层”
+- 所有对容器的改动 - 无论添加、删除、还是修改文件都只会发生在容器层中
+- 只有容器层是可写的，容器层下面的所有镜像层都是只读的
 
 对于增删改查：
 
-1. 添加文件：在容器中创建文件时，新文件被添加到容器层中。
-2. 读取文件：在容器中读取某个文件时，Docker 会从上往下依次在各镜像层中查找此文件。一旦找到，立即将其复制到容器层，然后打开并读入内存。 
-3. 修改文件：在容器中修改已存在的文件时，Docker 会从上往下依次在各镜像层中查找此文件。一旦找到，立即将其复制到容器层，然后修改之。 只有当需要**修改时才复制一份数据**，这种特性被称作 **Copy-on-Write**。
-4. 删除文件：在容器中删除文件时，Docker 也是从上往下依次在镜像层中查找此文件。找到后，会在容器层中记录下此删除操作。 
+(1) 添加文件：在容器中创建文件时，新文件被添加到容器层中
 
-容器层记录对镜像的修改，所有**镜像层都是只读的，不会被容器修改**，所以**镜像可以被多个容器共享**。
+(2) 读取文件：在容器中读取某个文件时，Docker 会从上往下依次在各镜像层中查找此文件。一旦找到，立即将其复制到容器层，然后打开并读入内存
 
-***3\***|***2\*****3.2 构建镜像****3.2.1 docker commit**
+(3) 修改文件：在容器中修改已存在的文件时，Docker 会从上往下依次在各镜像层中查找此文件。一旦找到，立即将其复制到容器层，然后修改之。 只有当需要**修改时才复制一份数据**，这种特性被称作 **Copy-on-Write**
 
-1、运行容器
+(4) 删除文件：在容器中删除文件时，Docker 也是从上往下依次在镜像层中查找此文件。找到后，会在容器层中记录下此删除操作
 
+容器层记录对镜像的修改，所有**镜像层都是只读的，不会被容器修改**，所以**镜像可以被多个容器共享**
 
+### 2. 构建镜像
 
-```
-docker run -it ubuntu         -it参数的作用是以交互模式进入容器，并打开终端
-```
+#### (1) docker commit
 
-2、修改容器
+docker commit 命令是创建新镜像最直观的方法，其过程包含三个步骤：
 
+1. 运行容器
 
+![image-20231029151511092](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291515157.png)
 
-```
-apt-get install -y vim
-```
+2. 修改容器
 
-3、将容器保存为新的镜像
+![image-20231029151536565](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291515632.png)
 
+3. 将容器保存为新的镜像
 
-
-```
 查看当前运行的容器：docker ps，发现自动分配了silly_goldberg名字
-docker commit silly_goldberg ubuntu-with-vi
-```
+
+![image-20231029151715850](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291517927.png)
+
+执行docker commit命令将容器保存为镜像，新的镜像命名为 ubuntu-with-vi
+
+![image-20231029151759043](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291517096.png)
+
+查看新镜像的属性，从size上看到镜像因为安装了软件而变大了
+
+![image-20231029151908375](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291519445.png)
 
 这种方式不建议使用，原因如下：
 
-1. 手工，容易出错，效率低
+1. 手工，容易出错，效率低且可重复性弱
 2. 使用者只能拿到一个镜像，不知道这个镜像这么创建的，无法对镜像进行审计，存在安全隐患
 
-当然，cockerfile底层也是docker commit一层层构建的
-
-**3.2.2 Dockerfile**
-
-　　Dockerfile就是普通文件，可用touch创建。
-　　如果 /root 下有如下Dockerfile文件
+当然，Dockerfile底层也是docker commit一层层构建的
 
 
+
+#### (2) Dockerfile
+
+##### 第一个Dockerfile
+
+Dockerfile就是普通文件，可用touch创建
+
+如果 /root 下有如下Dockerfile文件
 
 ```
 FROM ubuntu
 RUN apt-get upadte && apt-get install -y vim
 ```
 
-　　如果运行的话
-
-
+如果运行的话
 
 ```
 root@ubuntu:~# pwd         ①   
@@ -510,9 +526,7 @@ Successfully built 35ca89798937           ⑩
 root@ubuntu:~#    
 ```
 
-　　各步骤详细解释
-
-
+各步骤详细解释
 
 ```
 ③
@@ -544,26 +558,30 @@ ubuntu 镜像 ID 为 f753707788c5
 删除临时容器 9f4d4166f7e3
 
 ⑩
-镜像构建成功。 
-通过 docker images 查看镜像信息。 
-镜像 ID 为 35ca89798937，与构建时的输出一致我们要特别注意指令 RUN 的执行过程 ⑦、⑧、⑨。Docker 会在启动的临时容器中执行操作，并通过 commit 保存为新的镜像。 
+镜像构建成功
 ```
 
-　　查看镜像分层结构：
+通过 docker images 查看镜像信息
 
+![image-20231029152438320](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291524394.png)
 
+镜像 ID 为 35ca89798937，与构建时的输出一致我们要特别注意指令 RUN 的执行过程 ⑦、⑧、⑨。Docker 会在启动的临时容器中执行操作，并通过 commit 保存为新的镜像
 
-```
-docker history ubuntu-with-vi-dockerfile
-```
+##### 查看镜像分层结构
 
-***3\***|***3\*****3.3 镜像的缓存特性**
+Ubuntu-with-vi-dockefile 是通过在base镜像的顶部添加一个新的镜像层而得到的
 
-　　Docker 会缓存已有镜像的镜像层，构建新镜像时，如果某镜像层已经存在，就直接使用，无需重新创建。
+![image-20231029152519968](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291525091.png)
 
-　　Dockerfile：
+这个新镜像层的内容由RUN apt-get update && apt-get install -y vim 生成。这一点我们可以通过 docker history 命令验证
 
+![image-20231029153324898](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291533036.png)
 
+##### 镜像的缓存特性
+
+Docker 会缓存已有镜像的镜像层，构建新镜像时，如果某镜像层已经存在，就直接使用，无需重新创建
+
+Dockerfile：
 
 ```
 FROM ubuntu
@@ -572,8 +590,6 @@ COPY testfile /
 ```
 
 执行过程
-
-
 
 ```
 root@ubuntu:~# ls           ① 
@@ -592,17 +608,25 @@ Removing intermediate container bf2b4040f4e9
 Successfully built 8d02784a78f4 
 ```
 
-　　② 重点在这里：之前已经运行过相同的 RUN 指令，这次直接使用缓存中的镜像层 35ca89798937。 
+​	   ① 确保 testfile 已存在
 
-　　如果我们希望在构建镜像时不使用缓存，可以在 docker build 命令中加上 --no-cache 参数。 
+　　② 重点在这里：之前已经运行过相同的 RUN 指令，这次直接使用缓存中的镜像层 35ca89798937
 
- 
+​       ③ 执行 COPY 指令
 
-　　Dockerfile 中每一个指令都会创建一个镜像层，上层是依赖于下层的。无论什么时候，只要某一层发生变化，其上面所有层的缓存都会失效。 也就是说，如果我们改变 Dockerfile 指令的执行顺序，或者修改或添加指令，都会使缓存失效。 
+其过程是启动临时容器，复制 testfile，提交新的镜像层 8d02784a78f4，删除临时容器ubuntu-with-vi-dockerfile-2
 
-***3\***|***4\*****3.4 调试Dockerfile**
+在 ubuntu-with-vi-dockefile 镜像上直接添加一层就得到了新的镜像 
 
+![image-20231029153809711](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291538841.png)
 
+如果我们希望在构建镜像时不使用缓存，可以在 docker build 命令中加上 --no-cache 参数 
+
+Dockerfile 中每一个指令都会创建一个镜像层，上层是依赖于下层的。无论什么时候，只要某一层发生变化，其上面所有层的缓存都会失效。 也就是说，如果我们改变 Dockerfile 指令的执行顺序，或者修改或添加指令，都会使缓存失效
+
+##### 调试Dockerfile
+
+总结一下通过Dockerfile构建镜像的过程：
 
 ```
 1.从 base 镜像运行一个容器。
@@ -612,11 +636,25 @@ Successfully built 8d02784a78f4
 5.重复 2-4 步，直到 Dockerfile 中的所有指令执行完毕。
 ```
 
-　　如果下一个指令有问题，可以通过运行上一条指令的镜像来调试
+如果下一个指令有问题，可以通过运行上一条指令的镜像来调试
 
-***3\***|***5\*****3.5 Dockerfile 常用指令**
+我们来看一个调试的例子，Dockerfile的内容如图所示
 
+![image-20231029154129261](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291541317.png)
 
+执行docker build，如图所示
+
+![image-20231029154237993](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291542065.png)
+
+Docker在执行第三步 RUN 指令时失败。我们可以利用第二步创建的镜像 22d31cc52b3e 进行调试，方法是通过 docker run -it 启动镜像的一个容器
+
+![image-20231029154418234](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291544333.png)
+
+手工执行 RUN 指令很容易定位失败的原因是 busybox 镜像中没有bash
+
+##### Dockerfile 常用指令
+
+下面列出了 Dockerfile 中常用的指令
 
 ```
 FROM 
@@ -664,11 +702,13 @@ ENTRYPOINT
     Dockerfile 中可以有多个 ENTRYPOINT 指令，但只有最后一个生效。CMD 或 docker run 之后的参数会被当做参数传递给 ENTRYPOINT
 ```
 
-**3.5.1 RUN、CMD、ENTRYPOINT的区别**
-
-**Shell + Exec**
 
 
+### 3. RUN、CMD、ENTRYPOINT的区别
+
+#### (1) Shell + Exec
+
+我们可以使用两种方式指定RUN、CMD和ENTRYPOINT要运行的命令：Shell格式和Exec格式
 
 ```
 Shell格式
@@ -678,12 +718,14 @@ Exec格式
     RUN ["apt-get","install","python3"]
 
 指令执行时，shell格式底层会调用 /bin/sh -c [command]
-    ENV name Cloud Man ENTRYPOINT echo "Hello,$name"
+    ENV name Cloud Man 
+    ENTRYPOINT echo "Hello,$name"
     执行docker run [image]将输出：
     Hello，Cloud Man
 
 指令执行时，Exec会直接调用 [command]，不会被shell解析
-    ENV name Cloud Man ENTRYPOINT ["/bin/echo","Hello,$name"]
+    ENV name Cloud Man 
+    ENTRYPOINT ["/bin/echo","Hello,$name"]
     执行docker run [image]将输出：
     Hello，$name
 如果希望使用环境变量，做如下修改：
@@ -692,13 +734,11 @@ Exec格式
     Hello，Cloud Man
 ```
 
-**RUN**
-
-
+#### (2) RUN
 
 ```
-RUN 指令通常用于安装应用和软件包。 
-RUN 在当前镜像的顶部执行命令，并通过创建新的镜像层。
+RUN 指令通常用于安装应用和软件包
+RUN 在当前镜像的顶部执行命令，并通过创建新的镜像层
 
 RUN apt-get update && apt-get install -y \bzr\cvs\git\mercurial\subversion 
 
@@ -708,15 +748,13 @@ RUN apt-get install -y \bzr\cvs\git\mercurial\subversion
 因为在第二步会创建镜像层，或者调用镜像层，由于镜像缓存，不能保证是最新的
 ```
 
-**CMD**
-
-
+#### (3) CMD
 
 ```
-CMD 指令允许用户指定容器的默认执行的命令。 
-此命令会在容器启动且 docker run 没有指定其他命令时运行。 
-    1、如果 docker run 指定了其他命令，CMD 指定的默认命令将被忽略。 
-    2、如果 Dockerfile 中有多个 CMD 指令，只有最后一个 CMD 有效。
+CMD 指令允许用户指定容器的默认执行的命令
+此命令会在容器启动且 docker run 没有指定其他命令时运行
+    1、如果 docker run 指定了其他命令，CMD 指定的默认命令将被忽略
+    2、如果 Dockerfile 中有多个 CMD 指令，只有最后一个 CMD 有效
 
 三种格式
     1、Exec格式(推荐)：CMD ["executable","paam1","parama2"]
@@ -730,11 +768,9 @@ Docker片段：CMD echo "Hello World" ，运行容器 docker run -it [image] /bi
 CMD命令被忽略，bash将被执行
 ```
 
-**ENTRYPOINT**
+#### (4) ENTRYPOINT
 
-　　可让容器以应用程序或者服务的形式运行。跟CMD不同的是，**不会被忽略**。
-
-
+可让容器以应用程序或者服务的形式运行。跟CMD不同的是，**不会被忽略**
 
 ```
 ENTRYPOINT ["/bin/echo","Hello"] CMD ["world"]
@@ -746,26 +782,28 @@ Hello CloudMan
 ENTRYPOINT echo "Hello" 的shell格式不会忽略任何CMD或docker run提供的参数
 ```
 
-**最佳实践**
-
-
+#### (5) 最佳实践
 
 ```
 最佳实践 
-    1、使用 RUN 指令安装应用和软件包，构建镜像。 
-    2、如果 Docker 镜像的用途是运行应用程序或服务，比如运行一个 MySQL，应该优先使用 Exec 格式的 ENTRYPOINT 指令。CMD 可为 ENTRYPOINT 提供额外的默认参数，同时可利用 docker run 命令行替换默认参数。 
-    3、如果想为容器设置默认的启动命令，可使用 CMD 指令。用户可在 docker run 命令行中替换此默认命令。
+    1、使用 RUN 指令安装应用和软件包，构建镜像
+    2、如果 Docker 镜像的用途是运行应用程序或服务，比如运行一个 MySQL，应该优先使用 Exec 格式的 ENTRYPOINT 指令。CMD 可为 ENTRYPOINT 提供额外的默认参数，同时可利用 docker run 命令行替换默认参数
+    3、如果想为容器设置默认的启动命令，可使用 CMD 指令。用户可在 docker run 命令行中替换此默认命令
 ```
 
-***3\***|***6\*****3.6 分发镜像**
 
-三种方式：
+
+### 4. 分发镜像
+
+如何在多个Docker Host上使用镜像，这里有三种方式：
 
 1. 用相同的Dockerfile在其他host构建镜像
 2. 将镜像上传到公共Registry（比如Docker Hub），Host直接下载使用
 3. 搭建私有的Registry供本地Host使用
 
+#### (1) 为镜像命名
 
+无论采用何种方式保存和分发镜像，首先都得给镜像命名
 
 ```
 docker build -t ubuntu-with-vi . ---就是镜像的名字
@@ -800,22 +838,24 @@ docker build -t ubuntu-with-vi . ---就是镜像的名字
 如果想使用特定版本，可以选择 myimage:1.9.1、myimage:1.9.2 或 myimage:2.0.0。
 ```
 
-***3\***|***7\*****3.7 Registry****3.7.1 公共Registry**
+![image-20231029155843842](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291558999.png)
 
+![image-20231029155910000](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291559193.png)
 
+![image-20231029155951482](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291559628.png)
+
+#### (2) 公共Registry
 
 ```
 公共Docker Hub：
     1、先在Docker Hub中创建账号
     2、在Docker Host中登录：docker login -u 账号
-    3、Docker Hub为了区分不同用户的同名镜像，镜像的registry中要包含用户名：[username]/xxx.tag。通过docker tag重命名镜像：docker tag hello-world dongye95/hello-world:test1
+    3、Docker Hub为了区分不同用户的同名镜像，镜像的registry中要包含用户名：[username]/xxx.tag。通过docker tag重命名镜像：docker tag hello-world dongye95/hello-world:test1 （注：Docker官方自己维护的镜像没有镜像名，比如httpd)
     4、比如要上传一份：docker push dongye95/hello-world:test1
     5、查看：docker images dongye95/hello-world
 ```
 
-**3.7.2 本地Registry**
-
-
+#### (3) 本地Registry
 
 ```
 本地Registry：Registry本身也是一个镜像
@@ -832,9 +872,9 @@ docker build -t ubuntu-with-vi . ---就是镜像的名字
     docker push 主机Host:5000/dongye/hello-world:test1
 ```
 
-***3\***|***8\*****3.8 命令**
+### 5. 小结
 
-
+#### (1) 镜像常用的子命令
 
 ```
 images：显示镜像列表
@@ -852,12 +892,13 @@ search：搜索Docker Hub中的镜像
     2、docker search httpd
 ```
 
-***4\***|***0\*****四、容器*****4\***|***1\*****4.1 运行容器**
+## 第4章 Docker 容器
 
+### 1. 运行容器
 
+三种方式指定容器启动时执行命令
 
 ```
-三种方式指定容器启动时执行命令
     1、CMD指令
     2、ENTRYPOINT指令
     3、在docker run命令中指定
@@ -865,19 +906,27 @@ search：搜索Docker Hub中的镜像
 　　　　返回目录
 ```
 
-查看Docker host中当前运行的容器
+例如下面的例子
+
+![image-20231029160858742](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291608801.png)
+
+容器启动时执行pwd，返回的 / 是容器中的当前目录。执行 docker ps 或 docker container ls 可以查看 Docker host 中 当前运行的容器
+
+![image-20231029161057113](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291610172.png)
+
+怎么没有容器？用 docker ps -a 或 docker container ls -a 看看
+
+![image-20231029161155164](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291611230.png)
+
+-a 会显示所有状态的容器，可以看到，之前的容器已经退出了，状态为Exited
 
 
 
-```
-docker ps [-a]
-docker container ls [-a]
-[-a]包括已经exited的容器
-```
+### 2. 让容器长期运行
 
-**4.1.1 让容器长期运行**
+容器的生命周期依赖于启动时执行的命令，只要该命令不结束，容器也就不会退出
 
-
+理解了这个原理，我们就可以通过一个长期运行的命令来保持容器的运行状态，例如执行下面的命令
 
 ```
 docker run ubuntu /bin/bash -c "while true;do sleep 1;done"
@@ -887,83 +936,133 @@ docker run ubuntu /bin/bash -c "while true;do sleep 1;done"
 docker run -d ubuntu /bin/bash -c "while true;do sleep 1;done"
 ```
 
-**4.1.2 容器的container id和name**
+**容器的container id和name**
 
+![image-20231029161615780](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291616837.png)
 
+![image-20231029161706317](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291617366.png)
 
-```
 容器启动时有一个“长ID”，docker ps时container id字段会显示“长ID”的前12位。NAMES字段显示容器的名字，在启动容器的时候可以通过 --name参数显式的为容器命名，不命名则自动分配
-docker run --name "my_http_server" -d httpd
 
-对于容器的操作，需要通过“长ID”、“短ID”或者“名称”
+![image-20231029161821455](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291618514.png)
 
-docker run --name "mysql_http_server" -d -p 80:80 httpd
-也可以通过rename重命名
+这一次我们用 --name 指定了容器的名字。我们还可以看到容器运行的命令是 httpd-foreground，通过docker history 可知这个命令是通过 CMD 指定的
+
+![image-20231029162044972](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291620036.png)
+
+
+
+### 3. 两种进入容器的方法
+
+我们经常需要进到容器内部去做一些工作，比如查看日志、调试、启动其他进程等。由两种方法进入容器：attach 和 exec
+
+#### (1) docker attach
+
+docker attach 可以attach到容器启动命令到终端，如图所示
+
+![image-20231029162345022](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291623080.png)
+
+通过“长ID”attach命令到了容器命令终端，之后看到echo每隔一秒打印到信息
+
+注：可通过 Crtl + p，然后 Crtl + q 的组合退出attach终端
+
+
+
+#### (2) docker exec
+
+通过docker exec 进入相同的容器，如图所示
+
+![image-20231029162846184](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291628264.png)
+
+说明如下：
+
+​       ① -it以交互模式打开 pseudo-TTY，执行bash，打开一个bash终端
+
+　　② 进入到容器内，容器的hostname就是其“短ID”
+
+​       ③ 可以像在linux里一样操作，ps -elf 显示了容器启动进程 while 以及当前的 bash 进程
+
+​       ④ 执行 exit 退出容器，回退到 docker host
+
+
+
+#### (3) attach VS exec
+
+attach与exec的主要区别如下：
+
+1. attach 直接进入容器启动命令的终端，不会启动新的进程
+2. exec则是在容器中打开新的终端，并且可以启动新的进程
+3. 如果想直接在终端中查看启动命令的输出，用attach，其他情况使用exec
+
+当然，如果只是为了查看启动命令的输出，可以使用docker logs 命令，如图所示
+
+![image-20231029163536023](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291635085.png)
+
+### 4. 容器相关命令
+
 ```
-
-**4.1.3 两种进入容器的方法**
-
-
-
-```
-docker attach <container>
-退出：Ctrl+p，然后Ctrl +q 
-
-docker exec -it <container> bash
-    1、-it以交互模式打开 pseudo-TTY，执行bash，打开一个bash终端
-    2、进入到容器内，容器的hostname就是其“短ID”
-    3、可以想在linux里一样操作
-    4、exit退出
-
-docker exec -it <container> bash|sh
-
-只查看日志的话可以用logs
-docker logs -f <container>  -f类似于tail -f 能够持续输出
-```
-
-attach VS exec
-\1. attach 直接进入容器启动命令的终端，不会启动新的进程
-\2. exec则是在容器中打开新的终端，并且可以启动新的进程
-\3. 如果想直接在终端中查看启动命令的输出，用attach，其他情况使用exec
-
-attach 比较类似于logs命令
-
-***4\***|***2\*****4.2 容器相关命令**
-
-
-
-```
+启动/停止
 docker stop <container>        实际上向容器进程发送一个SIGTERM
 docker start <container>       会保留容器的第一次启动时的所有参数
 docker kill <container>          快速结束容器，实际上是发送SIGKILL
 
 自动重启
 docker run -d --restart=always httpd
---restart=always 表示不管何种方式退出都重启----包括正常退出
---restart=on-failure:3，意识是如果启动进程退出代码非0，则重启机器，最多3次
+--restart=always        表示不管何种方式退出都重启----包括正常退出
+--restart=on-failure:3，   意思是如果启动进程退出代码非0，则重启机器，最多3次
 
+暂停/恢复
+有时我们只是希望容器暂停工作一段时间，比如要对容器的文件系统打个快照，或者docker host 需要使用CPU，这时可以执行如下命令docker pause。处于暂停状态的容器不会占用CPU资源
 docker pause <container>
 docker unpause <container>
 
+删除
 docker rm <container>
 
 批量删除所有已经退出的容器：
 docker rm -v $(docker ps -aq -f status=exited)
 
+创建
 docker create <container>，只创建一个容器，处于created状态，未start
 ```
 
-***4\***|***3\*****4.3 资源限制****4.3.1 内存**
+
+
+### 5. 状态机
+
+下面这张状态机很好地总结了容器各种状态之间是如何转换的
+
+![image-20231029164226411](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291642569.png)
+
+由两点需要补充一下：
+
+#### (1) 可以先创建容器，稍后再启动
+
+![image-20231029164432639](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291644751.png)
+
+​       ① docker create 创建的容器处于Created 状态
+
+　　② docker start 将以后台方式启动容器。docker run 的命令实际上是 docker create 和 docker start 的组合
+
+​    
+
+#### (2) 只有当容器的启动进程退出时，--restart 才生效
+
+退出包括正常退出或者非正常退出，这里举了两个例子：启动进程正常退出或发生OOM，此时Docker会根据--restart的策略判断是否需要重启容器。但如果容器是因为执行docker stop 或 docker kill 退出，则不会自动重启
+
+
+
+### 6. 资源限制
+
+#### (1) 内存限额
 
 与操作系统类似，容器可使用的内存包括两部分：物理内存和swap
-
-
 
 ```
 -m或者--memory：设置内存的使用限额
 --memory-swap：设置内存+swap的使用限额
 
-docker run -it -m 200M --memory-swap=300M ubuntu
+docker run -it -m 200M --memory-swap=300M ubuntu  #内存限额200M，swap限额100M
 如果只有 -m 没有 --memory-swap，这后者默认为前者的两倍
 
 使用progrium/stress镜像来测试，该镜像可用于对容器执行压力测试
@@ -972,9 +1071,9 @@ docker run -it -m 200M --memory-swap=300M progrium/stress --vm 1 --vm-bytes 280M
 --vm-bytes 280M：每个线程分配280M内存
 ```
 
-**4.3.2 CPU限额**
 
 
+#### (2) CPU 限额
 
 ```
 -c 或者 --cpu-shares，设定权重，不设定的话默认值为1024
@@ -983,8 +1082,22 @@ docker run --name "container_B" -c 512 ubuntu
 当争抢CPU时，则A能抢到B的两倍。不争抢都是正常跑满
 
 docker run --name container_A -it -c 1024 progrium/stress --cpu 1
-docker run --name container_B -it -c 1024 progrium/stress --cpu 1
+docker run --name container_B -it -c 512 progrium/stress --cpu 1
 --cpu 1 用来设置工作线程数量，只有1个cpu的话，1个工作线程就能将CPU压满
-此时，A分得66的cpu资源，B只有33。如果关掉A，则全部分给B。
+此时，A分得66%的cpu资源，B只有33%。如果关掉A，则全部分给B。
 ```
+
+![image-20231029170123069](/Users/beck/Library/Application Support/typora-user-images/image-20231029170123069.png)
+
+
+
+#### (3) Block IO 带宽限额
+
+Block IO 是另一种可以限制容器使用资源的资源。Block IO指的是磁盘的读写，docker可以通过设置权重、限制bps和iops的方式控制读写磁盘的带宽
+
+#### block IO 权重
+
+--block-weight 与 --cpu-shares 类似，设置的是相对权重值，默认为500。在下面的例子中，container A 读写磁盘的带宽 是container B的两倍
+
+
 
