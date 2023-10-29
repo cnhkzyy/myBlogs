@@ -838,9 +838,15 @@ docker build -t ubuntu-with-vi . ---就是镜像的名字
 如果想使用特定版本，可以选择 myimage:1.9.1、myimage:1.9.2 或 myimage:2.0.0。
 ```
 
+**1.9.1版本**
+
 ![image-20231029155843842](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291558999.png)
 
+**1.9.2版本**
+
 ![image-20231029155910000](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291559193.png)
+
+**2.0.0版本**
 
 ![image-20231029155951482](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291559628.png)
 
@@ -1095,9 +1101,139 @@ docker run --name container_B -it -c 512 progrium/stress --cpu 1
 
 Block IO 是另一种可以限制容器使用资源的资源。Block IO指的是磁盘的读写，docker可以通过设置权重、限制bps和iops的方式控制读写磁盘的带宽
 
-#### block IO 权重
+##### block IO 权重
 
 --block-weight 与 --cpu-shares 类似，设置的是相对权重值，默认为500。在下面的例子中，container A 读写磁盘的带宽 是container B的两倍
 
+```
+docker run -it --name container_A --blkio-weight 600 ubuntu docker run -it --name container_B --blkio-weight 300 ubuntu
+```
 
+##### 限制 bps 和 iops
+
+bps 是 byte per second    每秒读写的数据量
+
+iops 是 io per second     每秒IO的次数
+
+可通过以下参数控制容器的 bps 和 iops
+
++ --device-read-bps：限制读某个设备的bps
++ --device-write-bps：限制写某个设备的bps
++ --device-read-iops：限制读某个设备的iops
++ --device-write-iops: 限制写某个设备的iops
+
+下面这个例子限制容器写/dev/sda的速率为 30MB/s
+
+```
+docker run -it --device-write-bps /dev/sda:30MB ubuntu
+```
+
+我们来看试验效果，如图所示：
+
+![image-20231029234456234](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310292344319.png)
+
+通过dd测试在容器中写磁盘的速度。因为容器的文件系统是在host /dev/sda 上的，在容器中写文件相当于对host /dev/sda 进行写操作。另外，oflag=direct 指定用direct IO 方式写文件，这样 --device-write-bps 才能生效
+
+结果表明，bps 25.6 MB/s 没有超过 30MB/s 的限速
+
+作为测试对比，如果不限速，结果如图所示
+
+![image-20231029234830008](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310292348132.png)
+
+
+
+### 7. 实现容器的底层技术
+
+cgroup 和 namespace 是最重要的两门技术。cgroup 实现资源限额，namespace 实现资源隔离
+
+#### (1) cgroup
+
+> Group 全称 Control Group。Linux系统通过 cgroup 可以设置进程使用CPU、内存和 IO 资源限额。前面的--cpu-shares、-m、--device-write-bps 实际上就是在配置 cgroup
+
+cgroup长什么样子呢？我们可以在 /sys/fs/cgroup 中找到它。还是用例子说明，启动一个容器，设置 --cpu-shares=512，如图所示
+
+![image-20231029235642620](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310292356750.png)
+
+查看容器的ID，如图所示
+
+![image-20231029235745842](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310292357967.png)
+
+在 /sys/fs/cgroup/docker 目录中，Linux 会为每个人器创建一个 group 目录，以容器长 ID 命名，如图所示
+
+![image-20231030000027177](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310300000311.png)
+
+目录中包含所有与 cpu 相关的 cgroup 配置，文件 cpu.shares 保存的就是 --cpu-shares 的配置，值为512
+
+同样的，/sys/fs/cgroup/memory/docker 和 /sys/fs/cgroup/blkio/docker 中保存的是内存以及Block IO的 group 配置
+
+#### (2) namespace
+
+> namespace管理着host中全局唯一的资源，并可以让每个容器都觉得只有自己在使用它。换句话说，namespace实现了容器间资源的隔离
+
+Linux 使用了6种namespace，分别对应6种资源：Mount、UTS、IPC、PID、Network和User
+
+##### Mount namespace
+
+Mount namespace 让容器看上去拥有整个文件系统
+
+容器有自己的 / 目录，可以执行mount和umount命令。当然我们知道这些操作只在当前容器中生效，不会影响到host和其他容器
+
+##### UTS namespace
+
+简单地说，UTS namespace 让容器有自己的 hostname。默认情况下，容器的hostname 是它的短ID，可以通过 -h 或 --hostname 参数设置
+
+![image-20231030001005982](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310300010161.png)
+
+##### IPC namespace
+
+IPC namespace 让容器拥有自己的共享内存和信号量来实现进程间通信，而不会与 host 和其他容器的 IPC 混在一起
+
+##### PID namespace
+
+前面提到过，容器在host中以进程的形式运行。例如当前host中运行了两个容器，如图所示
+
+![image-20231030001252490](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310300012630.png)
+
+通过 ps axf 可以查看容器进程，如图所示
+
+![image-20231030001419763](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310300014900.png)
+
+所有容器的进程都挂在dockerd进程下，同时也可以看到容器自己的子进程，如果我们进入到某个容器，ps 就只能看到自己的进程了
+
+![image-20231030001600794](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310300016921.png)
+
+而且进程中的 PID 不同于 host 中对应进程的 PID，容器中 PID=1 的进程当然也不是host的init进程。**也就是说：容器拥有自己独立的一套PID，这就是 PID namespace 提供的功能**
+
+##### Network namespace 
+
+Network namespace 让容器拥有自己独立的网卡、IP、路由等资源
+
+##### User namespace
+
+User namespace 让容器能够管理自己的用户，host 不能看到容器中创建的用户，如图所示
+
+![image-20231030001953903](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310300019035.png)
+
+在容器中创建了用户 cloudman，但host中并不会创建相应的用户
+
+
+
+### 8. 小结
+
+下面是容器常用操作命令
+
+```
+docker create 创建容器
+docker run 运行容器
+docker pause 暂停容器
+docker unpause 取消暂停继续运行容器
+docker stop 发送SIGTERM 停止容器
+docker kill 发送SIGKILL 快速停止容器
+docker start 启动容器
+docker restart 重启容器
+docker attach attach到容器启动进程的终端
+docker exec 在容器中启动新进程，通常使用"-it"参数
+docker logs 显示容器启动进程的控制台输出，用"-f"持续打印
+docker rm 从磁盘中删除容器
+```
 
