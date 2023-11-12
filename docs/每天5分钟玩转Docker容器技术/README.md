@@ -1046,6 +1046,8 @@ docker create <container>，只创建一个容器，处于created状态，未sta
 
 ![image-20231029164432639](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202310291644751.png)
 
+​       
+
 ​       ① docker create 创建的容器处于Created 状态
 
 　　② docker start 将以后台方式启动容器。docker run 的命令实际上是 docker create 和 docker start 的组合
@@ -1236,4 +1238,168 @@ docker exec 在容器中启动新进程，通常使用"-it"参数
 docker logs 显示容器启动进程的控制台输出，用"-f"持续打印
 docker rm 从磁盘中删除容器
 ```
+
+
+
+## 第5章 Docker 网络
+
+### 1. Docker的原生网络
+
+Docker安装时会自动在host上创建三个网络，我们可以用 docker network ls 命令查看，如图所示
+
+![image-20231111233740089](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311112337297.png)
+
+
+
+#### (1). none 网络
+
+顾名思义，none网络就是什么都没有的网络。挂在这个网络下的容器除了 lo，没有其他任何网卡。容器创建时，可以通过 --network=none 指定使用none网络，如图所示
+
+![image-20231111235216926](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311112352160.png)
+
+这样一个封闭的网络有什么用？
+
+封闭意味着隔离，一些对安全要求高并且不需要联网的应用可以使用none网络。比如某个容器的唯一用途是生成随机密码，就可以放到none网络中避免密码被窃取
+
+#### (2). host 网络
+
+连接到host网络的容器共享Docker host的网络栈，容器的网络配置与host完全一样，可以通过--network=host指定使用host网络，如图所示
+
+![image-20231112100852984](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311121008078.png)
+
+在容器中可以看到host的所有网卡，并且连hostname也是host的。host网络的使用场景又是什么呢？
+
+直接使用Docker host的网络最大的好处就是性能，如果容器对网络传输效率有较高要求，则可以选择host网络。当然不便之处就是牺牲一些灵活性，比如要考虑端口冲突问题，Docker host上已经使用的端口就不能再用了
+
+Docker host的另一个用途是让容器可以直接配置host网络，比如某些跨host的网络解决方案，其本身也是已容器方式运行，这些方案需要对网络进行配置，比如管理iptables
+
+#### (3). bridge 网络
+
+Docker 安装时会创建一个命名为 docker0 的Linux bridge。如果不指定--network，创建的容器默认都会挂到docker0上，如图所示
+
+![image-20231112101808878](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311121018009.png)
+
+当前docker0上没有任何其他网络设备，我们创建一个容器看看有什么变化，如图所示
+
+![image-20231112102130966](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311121021087.png)
+
+一个新的网络接口vetha85a84e被挂到了docker0上，vetha85a84e就是新创建容器的虚拟网卡
+
+下面看一个容器的网络配置，如图所示（注：在使用 ip a命令前，需要在容器内先更新apt-get，然后安装iproute2，完整命令是：apt-get update & apt-get install -y iproute2）
+
+![](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311121054998.png)
+
+容器有一个网卡eth0@if97，为什么不是vetha85a84e呢？
+
+实际上，eth0@if97 和 vetha85a84e 是一对 veth pair。veth pair 是一种成对出现的特殊网络设备，可以把它们想象成由一根虚拟网线连接起来的一对网卡，网卡的一头eth0@if97在容器中，另一头vetha85a84e挂在网桥docker0上，其效果就是将eth0@if97也挂在了docker0上
+
+我们还可以看到eth0@if97已经配置了IP 172.17.0.2，为什么是这个网段呢？可以通过docker network inspect bridge 看一下bridge网络的配置信息，如图所示
+
+![image-20231112110103033](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311121101165.png)
+
+原来bridge网络配置的subnet就是172.17.0.0/16，而且网关是172.17.0.1。这个网关在哪儿呢？其实就是docker0，如图所示
+
+![image-20231112110301488](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311121103637.png)
+
+容器创建时，docker会自动从172.17.0.0/16中分配一个IP，这里16位的掩码保证有足够多的IP可以供容器使用
+
+### 2. User-defined 网络
+
+#### (1). user-defined 网络驱动
+
+除了none、host、bridge 这三个自动创建的网络，用户也可以根据业务需要创建user-defined 网络
+
+Docker 提供三种user-defined 网络驱动：bridge、overlay 和 macvlan。overlay 和 macvlan 用于创建跨主机的网络，这里暂不讨论，这里只讨论 bridge
+
+#### (2). 自动分配网段
+
+我们可通过 bridge 驱动创建类似前面默认的 bridge 网络
+
+![image-20231112111011329](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311121110463.png)
+
+查看当前host的网络结构变化，发现新增了一个网桥 br-2028aa34a67b。这里 br-2028aa34a67b 正好是新建 bridge 网络my_net的短id。执行docker network inspect 查看一下 my_net 的配置信息
+
+![image-20231112111314123](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311121113262.png)
+
+这里的172.18.0.0/16 是Docker自动分配的IP网段
+
+#### (2). 自定义网段
+
+在以上的场景中，自己也可以指定IP网段，只需要在创建网段时指定 --subnet 和 --gateway 参数，如图所示
+
+![image-20231112223700320](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311122237272.png)
+
+这样我们创建了新的 bridge 网络my_net2，网段位172.22.16.0/24，网关位172.22.16.1，与前面一样，网关在my_net2 对应的网桥 br-27705f85aca0 上，如图所示
+
+![](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311122239667.png)
+
+#### (3). 容器中使用自定义网络
+
+容器中要使用新的网络，需要在启动时通过 --network 指定，如图所示
+
+![image-20231112224159477](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311122241603.png)
+
+容器分配到的IP为172.22.16.2
+
+#### (4). 指定静态IP
+
+还可以通过--ip指定指定一个静态IP，如图所示
+
+![image-20231112224809142](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311122248295.png)
+
+注：只有使用 --subnet 创建的网络才能指定静态IP，如果my_net 创建时没有指定--subnet，那么指定静态IP的时候会报错，如图所示
+
+![image-20231112225229479](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311122252638.png)
+
+#### (5). 网络隔离
+
+我们来看看当前docker host的网络拓扑结构，如图所示
+
+![image-20231112233611456](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311122336651.png)
+
+两个busybox容器都挂在my_net2上，应该可以互通，我们验证一下，如图所示
+
+![image-20231112234638133](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311122346288.png)
+
+可见同一网络中的容器，网关之间是可以通信的
+
+my_net2 与默认的 bridge 网络能通信吗？从拓扑图可知，两个网络属于不同的网桥，应该不能通信，我们可以验证一下，让busybox容器 ping httd 容器，如图所示
+
+![image-20231112235015802](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311122350960.png)
+
+确实ping不通，符合预期
+
+如果不同的网络加上路由应该可以通信了吧，这是一个非常好的想法。确实，如果host对应每个网络都有一个路由，同时操作系统上打开了 ip forwarding，host就成了一个路由器，挂接在不同网桥上的网络就能够相互通信。下面我们来看看docker host是否满足这些条件呢？
+
+ip r 查看 host 上的路由表：
+
+![image-20231112235500064](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311122355227.png)
+
+172.17.0.0/16 和 172.22.16.0/24 两个网络的路由都定义好了，再看看 ip forwarding：
+
+![image-20231112235703107](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311122357262.png)
+
+ip forwarding 也已经启动了。条件都满足，为什么不能通行呢？
+
+我们还得看看 iptables：
+
+![image-20231113000107803](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311130001957.png)
+
+原因就在这里了：iptables DROP 掉了网桥 docker0 与 br-27705f85aca0 之间双向的流量。从规则的命名 DOCKER-ISOLATION 可知docker在设计上就是要隔离不同的network
+
+那么接下来的问题是：怎样才能让busybox与httpd通信呢？
+
+答案是：为httpd器添加一块my_net2的网卡。这个可以通过 docker network connect 命令实现，如图所示
+
+![image-20231113000510020](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311130005179.png)
+
+我们在httpd容器中查看一下网络配置，如图所示
+
+![image-20231113000705945](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311130007099.png)
+
+容器中增加了一个网卡 eth1, 分配了my_net2的IP 172.22.16.3。现在busybox应该都能够访问httpd了，验证一下，如图所示
+
+![image-20231113001215118](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311130012288.png)
+
+busybox能够ping到httpd，并且可以访问httpd的web服务。当前网络结构如图所示
 
