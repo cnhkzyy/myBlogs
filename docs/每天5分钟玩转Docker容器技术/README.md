@@ -1355,7 +1355,7 @@ Docker 提供三种user-defined 网络驱动：bridge、overlay 和 macvlan。ov
 
 我们来看看当前docker host的网络拓扑结构，如图所示
 
-![image-20231112233611456](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311122336651.png)
+![image-20231113192753645](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311131927750.png)
 
 两个busybox容器都挂在my_net2上，应该可以互通，我们验证一下，如图所示
 
@@ -1403,3 +1403,196 @@ ip forwarding 也已经启动了。条件都满足，为什么不能通行呢？
 
 busybox能够ping到httpd，并且可以访问httpd的web服务。当前网络结构如图所示
 
+![image-20231113201125118](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311132011213.png)
+
+
+
+## 第6章 Docker 存储
+
+### 1. 容器存储数据的资源
+
+Docker为容器提供了两种存放数据的资源：
+
+(1). 由 storage driver 管理的镜像层和容器层
+
+(2). Data Volume
+
+### 2. storage driver
+
+#### (1). 分层结构
+
+我们之前学习到Docker镜像的分层结构，如图所示
+
+![image-20231113202044849](/Users/beck/Library/Application Support/typora-user-images/image-20231113202044849.png)
+
+容器由最上面一个可写的容器层，以及若干只读的镜像层组成，容器的数据就存放在这些层中。这样的分层结构最大的特性是 Copy-on-Write
+
+分层结构使镜像和容器的创建、共享以及分发变得非常高效，而这些都要归功于Docker storage driver。正是 storage driver 实现了分层数据的堆叠，并为用户提供了一个单一的合并之后的统一视图
+
+#### (2). storage driver分类
+
+Docker 支持多种 storage driver，由AUFS、Device Mapper、Btrfs、OverlayFS、VFS和ZFS等。它们都能实现分层的架构，同时又有各自的特性。Docker 安装时会根据当前系统的配置选择默认的driver。默认的driver具有最好的稳定性，Docker官方推荐优先使用Linux发行版默认的 storage driver
+
+运行docker info可以查看Centos的默认driver，如图所示
+
+![image-20231113202946224](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311132029372.png)
+
+Centos 默认的driver用的是overlay2，底层文件系统是xfs，各层数据存放在/var/lib/docker/overlay2中，如图所示
+
+![image-20231113203220728](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311132032876.png)
+
+#### (3). 无状态应用
+
+对于某些容器，直接将数据存放在由storage driver维护的层中是很好的选择，比如那些无状态的应用。无状态意味着容器没有需要持有化的数据，随时可以从镜像直接创建。比如busybox，它是一个工具箱，启动busybox是为了执行诸如wget、ping之类的命令，不需要保存数据供以后使用，使用完直接退出，容器删除时存放在容器层的工作数据也一起被删除，这没问题，下次再启动新容器即可
+
+#### (4). 有状态应用
+
+但对于另一类应用这种方式就不合适了，它们由持久化数据的需求，容器启动时需要加载已有的数据，容器销毁时希望保留产生的新数据，也就是说，这类容器是有状态的
+
+这就要用到Docker的另一种存储机制：Data Volume
+
+### 3. Data Volume
+
+#### (1). Data Volume 的特点
+
+Data Volume 本质上是Docker Host文件系统中的目录或文件，能够直接被mount到容器的文件系统中。Data Volume 由以下特点：
+
+1. Data Volume 是目录或文件，而非没有格式化的磁盘（块设备）
+2. 容器可以读写 volume 中的数据
+3. volume 数据可以被永久地保存，即使使用它的容器已经销毁
+
+#### (2). 使用场景
+
+数据层（镜像层和容器层）和volume都可以用来存放数据，具体的使用场景如下：
+
+1. Database 软件：数据层
+2. Database 数据：Data Volume
+3. Web 应用：数据层
+4. 应用产生的日志：Data Volume
+5. 数据分析软件：数据层
+6. input/output的数据：Data Volume
+7. Apache Server：数据层
+8. 静态的HTML文件：Data Volume
+
+#### (3). volume 的容量
+
+如何设置volume的容量，因为volume实际上是docker host文件系统的一部分，所以volume的容量取决于文件系统当前未使用的空间，目前还没有方法设置volume的容量
+
+#### (4). volume 的类型
+
+docker提供了两种类型的volume：bind mount 和 docker managed volume
+
+#### (5). bind mount
+
+bind mount 是将 host 上已存在的目录或文件 mount 到容器
+
+例如 docker host 上有目录/root/htdocs，在里面创建一个index.html文件，内容如图所示
+
+![image-20231113210107805](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311132101955.png)
+
+通过 -v 将其 mount 到 httpd 容器，如图所示
+
+![image-20231113210540324](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311132105401.png)
+
+-v 的格式为<host path>:<container path>。/usr/local/apache2/htdocs 就是Apache Server 存放静态文件的地方。由于/usr/local/apache2/htdocs 已经存在，原有数据会被隐藏起来，取而代之的是host /root/htdocs/中的数据
+
+![image-20231113211400292](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311132114459.png)
+
+curl 显示当前主页确实是/root/htdocs/index.html 中的内容。更新一下，看是否能生效，如图所示
+
+![image-20231113214221020](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311132142193.png)
+
+host 中的修改确实生效了，bind mount 可以让 host 与容器共享数据。这里管理上是非常方便的
+
+下面我们将容器销毁，看看对 bind mount 有什么影响
+
+![image-20231113220445293](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311132204452.png)
+
+可见，即使容器没有了，bind mount 也还在。这也合理，bind mount 是 host 文件系统中的数据，只是借给容器用用，不能随便就给删了
+
+另外，bind mount 时还可以指定数据的读写权限，默认是可读可写，可指定为只读，如图所示
+
+![image-20231113221537119](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311132215283.png)
+
+ro 设置了只读权限，在容器中是无法对 bind mount 数据进行修改的。只有 host 有权修改数据，提高了安全性
+
+除了 bind mount 目录，还可以单独指定一个文件（注：使用单独文件 mount 的时候，要使用绝对路径），如图所示
+
+![image-20231113223431506](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311132234686.png)
+
+使用 bind mount 单个文件的场景是：只需要向容器添加文件，不希望覆盖整个目录。在上面的例子中，我们将 html 文件加到 apache 中，同时也保留了容器原有的数据
+
+使用单一文件有一点要注意：host 中的源文件必须要存在，不然会被当作一个新目录 bind mount 给容器中，在 host 中修改代码就能看到应用的实时效果。再比如将 MySQL 容器的数据放在 bind mount 里，这样 host 可以方便地备份和迁移数据
+
+bind mount 的使用直观高效，易于理解，但它也有不足的地方：bind mount 需要指定 host 文件系统的特定路径，这就限制了容器的可移植性，当需要将容器迁移到其他 host，而该 host 没有要 mount 的数据或者数据不在相同的路径时，操作会失败
+
+移植性更好的方式是 docker managed volume
+
+#### (6). docker managed volume
+
+docker managed volume 与 bind mount 在使用上最大区别是不需要指定 mount 源，指明 mount point 就行了。还是以 httpd 容器为例，如图所示
+
+![image-20231113225507233](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311132255396.png)
+
+我们通过 -v 告诉 docker 需要一个 data volume，并将其 mount 到/usr/local/apache2/htdocs，那么这个 data volume 具体在哪儿呢？
+
+实际上，在容器的配置信息里可以找到，执行 docker inspect 命令：
+
+```
+[root@k8scloude1 ~]# docker inspect beck_managed_httpd
+"Mounts": [
+            {
+                "Type": "volume",
+                "Name": "59a6104b0ef88f344a39e695526a995b1c1ce86487568cb17035ec42135c6219",
+                "Source": "/var/lib/docker/volumes/59a6104b0ef88f344a39e695526a995b1c1ce86487568cb17035ec42135c6219/_data",
+                "Destination": "/usr/local/apache2/htdocs",
+                "Driver": "local",
+                "Mode": "",
+                "RW": true,
+                "Propagation": ""
+            }
+        ],
+```
+
+可以看到，Mounts 这部分会显示容器当前使用的所有 data volume，包括 bind mount 和 docker managed volume，Source 就是该 volume 在 host 上的目录
+
+**原来，每当容器申请 mount docker managed volume 时，docker 都会在 /var/lib/docker/volumes 下生成一个目录（例子中是 /var/lib/docker/volumes/59a6104b0ef88f344a39e695526a995b1c1ce86487568cb17035ec42135c6219/_data），这个目录就是 mount 源**
+
+下面继续研究这个 volume，看看里面有什么东西，如图所示
+
+![image-20231113230406123](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311132304278.png)
+
+volume 的内容与容器原有 /usr/local/apache2/htdocs 完全一样，是因为如果 mount point 指向的是已有目录，原有数据会被复制到 volume 中
+
+但要明确一点：此时的 /usr/local/apache2/htdocs 已经不再是由 storage driver 管理的层数据了，它已经是一个 data volume。我们可以像 bind mount 一样对数据进行操作，例如更新数据，如图所示
+
+![image-20231113230922203](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311132309360.png)
+
+简单回顾一下 docker managed volume 的创建过程：
+
+1. 容器启动时，简单地告诉 docker "我需要一个 volume 存放数据，帮我 mount 到目录 /abc"
+2. docker 在 /var/lib/docker/volumes 中生成一个随机目录作为 mount 源
+3. 如果 /abc 已经存在，则将数据复制到 mount 源
+4. 将 volume mount 到 /abc
+
+除了通过 docker inspect 查看 volume，我们还可以通过 docker volume 命令，如图所示
+
+![image-20231113231501914](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311132315077.png)
+
+目前，docker volume 只能查看 docker managed volume，还看不到 bind mount，同时也无法知道 volume 对应的容器，这些信息还得靠 docker inspect
+
+我们已经学习了两种 data volume 的原理和基本使用方法，下面做个对比：
+
+1. 相同点：两者都是 host 文件系统中的某个路径
+
+2. 不同点，如表所示
+
+   | 不同点                  | bind mount                   | docker managed volume        |
+   | :---------------------- | ---------------------------- | ---------------------------- |
+   | volume 位置             | 可在任意指定                 | /var/lib/docker/volumes/...  |
+   | 对已有 mount point 影响 | 隐藏并替换为 volume          | 原有数据复制到 volume        |
+   | 是否支持单个文件        | 支持                         | 不支持，只能是目录           |
+   | 权限控制                | 可设置为只读，默认为读写权限 | 无控制，均为读写权限         |
+   | 移植性                  | 移植性弱，与 host path 绑定  | 移植性强，无须指定 host 目录 |
+
+   
