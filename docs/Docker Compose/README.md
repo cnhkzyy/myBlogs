@@ -22,7 +22,9 @@ Docker Compose 是基于docker的开源项目，托管于github上，由python�
 
 ### 1. Docker Compose的安装
 
-本文简单介绍两种安装 Docker Compose 的方式，第一种方式相对简单，但是由于网络问题，常常安装不上，并且经常会断开，第二种方式略微麻烦，但是安装过程比较稳定。
+本文简单介绍两种安装 Docker Compose 的方式，第一种方式相对简单，但是由于网络问题，常常安装不上，并且经常会断开，第二种方式略微麻烦，但是安装过程比较稳定
+
+对于第二种方式，有可能会遇到\_ssl的问题：ModuleNotFoundError: No module named '_ssl'，这就要求在编译安装python过程中，显式的指定ssl的路径
 
 #### (1). github下载安装
 
@@ -429,13 +431,18 @@ services:
 - **web**：该 web 服务使用从 Dockerfile 当前目录中构建的镜像。然后，它将容器和主机绑定到暴露的端口 5000。此示例服务使用 Flask Web 服务器的默认端口 5000 
 - **redis**：该 redis 服务使用 Docker Hub 的公共 Redis 映像
 
-#### 项目整体结构
+##### 项目整体结构
 
 ![image-20231114222840313](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311142228385.png)
 
 ![image-20231114222924484](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311142229568.png)
 
+由于网络原因，gcc和pip安装较慢，因此 Dockerfile 做以下调整：
 
+1. 删除gcc安装
+2. pip 指定阿里源
+
+![image-20231115004400954](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311150044039.png)
 
 #### (2). docker-compose 命令格式
 
@@ -468,36 +475,31 @@ docker-compose up [options] [--scale SERVICE=NUM...] [SERVICE...]
 
 
 
-##### 例1: 启动所有服务
+##### 启动所有服务
 
-![image-20231114230848649](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311142308755.png)
-
-
+![image-20231115001156647](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311150011734.png)
 
 
 
+##### 在后台启动所有服务
 
-docker-compose up -d
+![image-20231115001444455](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311150014535.png)
 
-在后台所有启动服务
 
--f 指定使用的Compose模板文件，默认为docker-compose.yml，可以多次指定。
 
-docker-compose -f docker-compose.yml up -d
+#### (4). docker-compose ps
 
-#### (3). docker-compose ps
-
-> 列出项目中目前的所有容器
+> 列出项目中目前的所有由docker-compose启动的容器，注意与 docker ps 的区别
 
 ```
 docker-compose ps [options] [SERVICE...]
 ```
 
+![image-20231115001540783](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311150015907.png)
 
 
 
-
-#### (4). docker-compose port
+#### (5). docker-compose port
 
 > 显示某个容器端口所映射的公共端口
 
@@ -510,9 +512,9 @@ docker-compose port [options] SERVICE PRIVATE_PORT
 –index=index，如果同意服务存在多个容器，指定命令对象容器的序号（默认为1）
 ```
 
+![image-20231115002018095](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311150020219.png)
 
-
-#### (5). docker-compose down
+#### (6). docker-compose down
 
 > 停止和删除容器、网络、卷、镜像
 
@@ -526,13 +528,11 @@ docker-compose down [options]
 –remove-orphans，删除服务中没有在compose中定义的容器
 ```
 
+![image-20231115002140318](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311150021395.png)
 
 
 
-
-
-
-#### (6). docker-compose logs
+#### (7). docker-compose logs
 
 > 查看服务容器的输出。默认情况下，docker-compose将对不同的服务输出使用不同的颜色来区分。可以通过–no-color来关闭颜色
 
@@ -540,11 +540,11 @@ docker-compose down [options]
 docker-compose logs [options] [SERVICE...]
 ```
 
+![image-20231115002407782](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311150024937.png)
 
 
 
-
-#### (7). docker-compose build
+#### (8). docker-compose build
 
 > 构建（重新构建）项目中的服务容器
 
@@ -565,7 +565,7 @@ docker-compose build [options] [--build-arg key=val...] [SERVICE...]
 
 
 
-#### (8). docker-compose pull
+#### (9). docker-compose pull
 
 > 拉取服务依赖的镜像
 
@@ -583,7 +583,7 @@ docker-compose pull [options] [SERVICE...]
 
 
 
-#### (9). docker-compose push
+#### (10). docker-compose push
 
 > 推送服务依的镜像
 
@@ -597,7 +597,7 @@ docker-compose push [options] [SERVICE...]
 
 
 
-#### (10). docker-compose create
+#### (11). docker-compose create
 
 > 为服务创建容器
 
@@ -614,7 +614,7 @@ docker-compose create [options] [SERVICE...]
 
 
 
-#### (11). docker-compose start
+#### (12). docker-compose start
 
 > 启动已经存在的服务容器
 
@@ -622,11 +622,11 @@ docker-compose create [options] [SERVICE...]
 docker-compose start [SERVICE...]
 ```
 
+![image-20231115002714674](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311150027775.png)
 
 
 
-
-#### (12). docker-compose restart
+#### (13). docker-compose restart
 
 > 重启项目中的服务
 
@@ -638,11 +638,11 @@ docker-compose restart [options] [SERVICE...]
 -t, –timeout TIMEOUT，指定重启前停止容器的超时（默认为10秒）
 ```
 
+![image-20231115002820278](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311150028350.png)
 
 
 
-
-#### (13). docker-compose run
+#### (14). docker-compose run
 
 > 在指定服务上执行一个命令
 
@@ -650,11 +650,11 @@ docker-compose restart [options] [SERVICE...]
 docker-compose run [options] [-v VOLUME...] [-p PORT...] [-e KEY=VAL...] SERVICE [COMMAND] [ARGS...]
 ```
 
+![image-20231115003003881](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311150030960.png)
 
 
 
-
-#### (14). docker-compose exec
+#### (15). docker-compose exec
 
 > 在正在运行的容器中执行命令
 
@@ -670,11 +670,11 @@ docker-compose exec [options] SERVICE COMMAND [ARGS...]
 –index=index，当一个服务拥有多个容器时，可通过该参数登陆到该服务下的任何服务，例如：docker-compose exec –index=1 web /bin/bash ，web服务中包含多个容器
 ```
 
+![image-20231115003239583](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311150032667.png)
 
 
 
-
-#### (15). docker-compose pause
+#### (16). docker-compose pause
 
 > 暂停一个服务容器
 
@@ -682,11 +682,11 @@ docker-compose exec [options] SERVICE COMMAND [ARGS...]
 docker-compose pause [SERVICE...]
 ```
 
+![image-20231115003630180](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311150036254.png)
 
 
 
-
-#### (16). docker-compose unpause
+#### (17). docker-compose unpause
 
 > 恢复处于暂停状态中的服务
 
@@ -694,11 +694,11 @@ docker-compose pause [SERVICE...]
 docker-compose unpause [SERVICE...]
 ```
 
+![image-20231115003702674](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311150037769.png)
 
 
 
-
-#### (17). docker-compose stop
+#### (18). docker-compose stop
 
 > 停止正在运行的容器，可以通过docker-compose start 再次启动
 
@@ -709,11 +709,11 @@ docker-compose stop [options] [SERVICE...]
 -t, –timeout TIMEOUT 停止容器时候的超时（默认为10秒）
 ```
 
+![image-20231115002609246](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311150026368.png)
 
 
 
-
-#### (18). docker-compose rm
+#### (19). docker-compose rm
 
 > 删除所有（停止状态的）服务容器。推荐先执行docker-compose stop命令来停止容器
 
@@ -725,9 +725,9 @@ docker-compose rm [options] [SERVICE...]
 -v，删除容器所挂载的数据卷
 ```
 
+![image-20231115003847200](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311150038308.png)
 
-
-#### (19). docker-compose version
+#### (20). docker-compose version
 
 > 打印版本信息
 
@@ -735,7 +735,7 @@ docker-compose rm [options] [SERVICE...]
 
 
 
-#### (20). docker-compose -h
+#### (21). docker-compose -h
 
 > 查看帮助
 
