@@ -1239,6 +1239,87 @@ docker logs 显示容器启动进程的控制台输出，用"-f"持续打印
 docker rm 从磁盘中删除容器
 ```
 
+### 9. 作业
+
+**环境准备**
+
+- 在本地安装docker
+- 注册一个dockerhub账号
+
+**作业**
+
+(1). 从dockerhub获取一个centos 7作为基础镜像，在centos 7 中安装 vim，并使用 docker commit 打成新的镜像，删除本地镜像，将这个镜像push到dockerhub，然后下载该镜像，使用命令行的方式启动容器的时候，执行"vim -h"命令，使用一种方法查看容器启动时执行的命令
+
+1. 拉取镜像![image-20231116203738587](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311162037904.png)
+
+2. 检查系统版本，安装vim 
+
+   ![image-20231116205047326](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311162050405.png)
+
+3. 使用docker commit 打包成新的镜像，centos-vim
+
+   ![image-20231116205522115](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311162055204.png)
+
+4. push 到dockerhub
+
+   ![image-20231116211713946](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311162117109.png)
+
+   ![image-20231116213623853](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311162136957.png)
+
+5. 删除本地的centos-vim 镜像
+
+   ![image-20231116213841597](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311162138710.png)
+
+6. 拉取dockerhub的镜像
+
+   ![](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311162146774.png)
+
+7. 启动容器时执行 "docker -h" 命令
+
+   ![image-20231116214901769](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311162149883.png)
+
+8. 使用一种方法查看容器启动时的命令
+
+   ![image-20231116215757285](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311162157457.png)
+
+(2). 使用dockerfile的方式打一个新的镜像：以centos7作为基础镜像，在镜像中安装vim，然后定义容器启动时的命令"vim -h"。然后直接使用本地镜像运行容器，使用一种方法查看容器启动时的命令
+
+1. 定义dockerfile
+
+   ![image-20231116220656987](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311162206268.png)
+
+2. 打包新的镜像
+
+   ![image-20231116221220614](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311162212732.png)
+
+3. 运行容器，使用第一种方法查看容器启动时的命令
+
+   ![image-20231116221604887](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311162216005.png)
+
+4. 第二种查看启动命令的方法
+
+   ![image-20231116221856969](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311162218084.png)
+
+5. 第三种查看启动命令的方法
+
+   ![image-20231116222340044](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311162223202.png)
+
+
+
+### 10. 课堂问题
+
+(1). docker 是否直接使用windows内核
+
+<https://www.51cto.com/article/507951.html>
+
+(2). dockerfile中使用ENV，是否可以直接设置容器的环境变量
+
+![image-20231116224122214](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311162241319.png)
+
+(3).如何保证docker一直在后台运行不停止
+
+<https://www.jerrymei.cn/docker-container-run-not-stop-automatically/>
+
 
 
 ## 第5章 Docker 网络
