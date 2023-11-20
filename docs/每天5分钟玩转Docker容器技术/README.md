@@ -1095,7 +1095,7 @@ docker run --name container_B -it -c 512 progrium/stress --cpu 1
 此时，A分得66%的cpu资源，B只有33%。如果关掉A，则全部分给B。
 ```
 
-![image-20231029170123069](/Users/beck/Library/Application Support/typora-user-images/image-20231029170123069.png)
+![image-20231029170123069](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311210747503.png)
 
 
 
@@ -1504,7 +1504,7 @@ Docker为容器提供了两种存放数据的资源：
 
 我们之前学习到Docker镜像的分层结构，如图所示
 
-![image-20231113202044849](/Users/beck/Library/Application Support/typora-user-images/image-20231113202044849.png)
+![image-20231113202044849](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202311210748241.png)
 
 容器由最上面一个可写的容器层，以及若干只读的镜像层组成，容器的数据就存放在这些层中。这样的分层结构最大的特性是 Copy-on-Write
 
