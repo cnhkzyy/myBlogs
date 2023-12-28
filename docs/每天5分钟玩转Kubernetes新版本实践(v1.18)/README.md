@@ -147,13 +147,18 @@ Lens 官方文档：https://docs.k8slens.dev/getting-started/add-cluster/
 约为6分钟，参考这篇文章：https://www.cnblogs.com/gaoyuechen/p/16529774.html
 
 >在默认配置下，k8s节点故障时node notready，工作负载的调度周期约为6分钟，
+>
 >参数概念：
+>
 >node-monitor-period
 >节点控制器(node controller) 检查每个节点的间隔，默认5秒。
+>
 >node-monitor-grace-period
 >节点控制器判断节点故障的时间窗口, 默认40秒。即40 秒没有收到节点消息则判断节点为故障。
+>
 >pod-eviction-timeout
 >当节点故障时，kubelet允许pod在此故障节点的保留时间，默认300秒。即当节点故障5分钟后，kubelet开始在其他可用节点重建pod。
+>
 >5+40+300 ≈ 6分钟
 
 ![image-20231228212751142](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282127273.png)
