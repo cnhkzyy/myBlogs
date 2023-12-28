@@ -141,3 +141,52 @@ Lens 官方文档：https://docs.k8slens.dev/getting-started/add-cluster/
 ![image-20231228210610514](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282106600.png)
 
 ![image-20231228210746567](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282107665.png)
+
+### node 故障后的恢复时间
+
+约为6分钟，参考这篇文章：https://www.cnblogs.com/gaoyuechen/p/16529774.html
+
+>在默认配置下，k8s节点故障时node notready，工作负载的调度周期约为6分钟，
+>参数概念：
+>node-monitor-period
+>节点控制器(node controller) 检查每个节点的间隔，默认5秒。
+>node-monitor-grace-period
+>节点控制器判断节点故障的时间窗口, 默认40秒。即40 秒没有收到节点消息则判断节点为故障。
+>pod-eviction-timeout
+>当节点故障时，kubelet允许pod在此故障节点的保留时间，默认300秒。即当节点故障5分钟后，kubelet开始在其他可用节点重建pod。
+>5+40+300 ≈ 6分钟
+
+![image-20231228212751142](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282127273.png)
+
+一段时间后，状态为 Terminating 的 Pod 会消失
+
+![image-20231228213533447](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282135601.png)
+
+### Job 类型的资源执行完任务后
+
+在第P41页说，因为Pod执行完毕后容器已经退出，需要用--show-all才能查看Completed状态的Pod。事实上，在v1.18版本上直接可以使用 kubectl get pod 查看
+
+![image-20231228223311479](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282233592.png)
+
+![image-20231228223339854](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282233926.png)
+
+### enable CronJob 功能
+
+第P46页有提到，在部署CronJob资源的时候，会因为K8S默认配置没有开启CronJob功能而导致的报错，在v1.18中并没有遇到，且配置文件/etc/kubernetes/manifests/kube-apiserver.yaml 中并未找到相关的配置项
+
+![image-20231228225435480](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282254606.png)
+
+![image-20231228225501315](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282255413.png)
+
+### jobs.batch "hello-1703776080-rxs79" not found
+
+为什么会出现报错： 
+
+```she
+[root@k8s-master kubernetes-demo]# kubectl describe job/hello-1703776080-rxs79
+Error from server (NotFound): jobs.batch "hello-1703776080-rxs79" not found
+```
+
+![image-20231228230928932](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282309064.png)
+
+![image-20231228231144763](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282311862.png)
