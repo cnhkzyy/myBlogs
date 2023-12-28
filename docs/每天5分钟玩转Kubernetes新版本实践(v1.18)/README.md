@@ -12,9 +12,33 @@ https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run
 
 https://geekhour.net/2023/12/23/kubernetes/
 
+
+
+## Lens 添加 Clusters
+
+Lens 下载地址：https://k8slens.dev/
+
+Lens 官方文档：https://docs.k8slens.dev/getting-started/add-cluster/
+
+下载 Lens 桌面端后，打开 File-->Add Cluster，可以看到有一个 Add Clusters from kubeconfig
+
+![image-20231228200841340](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282008469.png)
+
+在 master 终端中输入``` kubectl config view --minify --raw```查看 kubeconfig 信息
+
+![image-20231228201017498](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282010584.png)
+
+将这些配置信息复制到 Add Clusters from kubeconfig 的空白区域，点击 Add clusters 按钮就可以添加cluster
+
+![image-20231228201233157](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282012240.png)
+
+![image-20231228201340063](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282013142.png)
+
+
+
 ## 第4章 Kubernetes 架构
 
-### 1. 参数 replicas 和 kubectl run
+### 参数 replicas 和 kubectl run
 
 在P23页的例子中，使用--replicas=2可以创建2个副本pod
 
@@ -86,18 +110,34 @@ https://geekhour.net/2023/12/23/kubernetes/
 
 
 
-### 2. Lens 添加 Clusters
+## 第5章 运行应用
 
-下载 Lens 桌面端后，打开 File-->Add Cluster，可以看到有一个 Add Clusters from kubeconfig
+### apiVersion: extensions/v1beta1
 
-![image-20231228200841340](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282008469.png)
+在第P30-P31页，当使用```kubectl apply -f nginx.yaml```时，会出现报错：error: unable to recognize "nginx.yaml": no matches for kind "Deployment" in version "extensions/v1beta1"
 
-在 master 终端中输入``` kubectl config view --minify --raw```查看 kubeconfig 信息
+![image-20231228204236782](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282042882.png)
 
-![image-20231228201017498](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282010584.png)
+![image-20231228204534054](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282045150.png)
 
-将这些配置信息复制到 Add Clusters from kubeconfig 的空白区域，点击 Add clusters 按钮就可以添加cluster
+实际上，我在本地运行的结果报错了
 
-![image-20231228201233157](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282012240.png)
+![image-20231228204613721](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282046804.png)
 
-![image-20231228201340063](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282013142.png)
+这个错误通常是由Kubernetes API版本不匹配引起的。在不同的Kubernetes版本中，API可能会有所不同，包括支持的资源种类和对象类型。因此，如果我们在较旧的Kubernetes版本中使用了较新的API对象类型，就会出现无法识别对象的错误。例如，如果我们在Kubernetes 1.15版本中尝试创建一个Deployment对象，但是Deployment对象是在1.16版本中引入的，那么Kubernetes就无法识别这个对象，从而导致错误的发生
+
+此时，可以更新 K8S 版本或者 apiVersion 
+
+![image-20231228205804658](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282058772.png)
+
+### deployment: selector
+
+更新后再次部署应用，发现还会报错：error: error validating "nginx.yaml": error validating data: ValidationError(Deployment.spec): missing required field "selector" in io.k8s.api.apps.v1.DeploymentSpec; if you choose to ignore these errors, turn validation off with --validate=false
+
+![image-20231228205901481](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282059570.png)
+
+增加一个 selector，可以看到成功了
+
+![image-20231228210610514](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282106600.png)
+
+![image-20231228210746567](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282107665.png)
