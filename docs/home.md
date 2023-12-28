@@ -54,4 +54,6 @@ Docker Compose [文档](/Docker_Compose/)
 
 每天5分钟玩转Kubernetes [文档](/每天5分钟玩转Kubernetes/)
 
+每天5分钟玩转Kubernetes新版本实践(v1.18) [文档](/每天5分钟玩转Kubernetes新版本实践(v1.18)/)
+
 Pipeline [文档](/Pipeline/)

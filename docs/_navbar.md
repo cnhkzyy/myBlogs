@@ -28,4 +28,5 @@
   + [每天5分钟玩转Docker容器技术](/每天5分钟玩转Docker容器技术/)
   + [Docker Compose](/Docker_Compose/)
   + [每天5分钟玩转Kubernetes](/每天5分钟玩转Kubernetes/)
+  + [每天5分钟玩转Kubernetes新版本实践(v1.18)](/每天5分钟玩转Kubernetes新版本实践(v1.18)/)
   + [Pipeline](/Pipeline/)
