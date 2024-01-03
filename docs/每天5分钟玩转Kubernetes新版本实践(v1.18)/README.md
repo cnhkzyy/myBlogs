@@ -183,15 +183,125 @@ Lens 官方文档：https://docs.k8slens.dev/getting-started/add-cluster/
 
 ![image-20231228225501315](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282255413.png)
 
-### jobs.batch "hello-1703776080-rxs79" not found
 
-为什么会出现报错： 
 
-```she
-[root@k8s-master kubernetes-demo]# kubectl describe job/hello-1703776080-rxs79
-Error from server (NotFound): jobs.batch "hello-1703776080-rxs79" not found
+## 第6章 通过 Service 访问 Pod
+
+### selector: run: httpd
+
+P50页在为httpd创建Service的时候，配置文件如图所示，采用了```run: httpd```的这种写法
+
+![image-20231229221617284](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312292216379.png)
+
+在新版本v1.18上操作后，发现 curl cluster ip: port 显示连接拒绝，查看service详情发现Endpoints中并没有显示三个Pod的IP和端口
+
+![image-20231229221755326](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312292217455.png)
+
+发现当selector改成```app: httpd```后，curl命令的请求结果和Endpoints都正常了
+
+![image-20231229222448863](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312292224934.png)
+
+
+
+### Cluster IP 底层实现
+
+使用```iptables-save```命令查看当前节点的 iptables 规则
+
+```shell
+-A KUBE-SERVICES ! -s 10.244.0.0/16 -d 10.103.38.177/32 -p tcp -m comment --comment "default/httpd-svc: cluster IP" -m tcp --dport 8080 -j KUBE-MARK-MASQ
+-A KUBE-SERVICES -d 10.103.38.177/32 -p tcp -m comment --comment "default/httpd-svc: cluster IP" -m tcp --dport 8080 -j KUBE-SVC-RL3JAE4GN7VOGDGP
+
+#1/3概率转发到 KUBE-SEP-TEXJ5FRT6GSZ3TBS
+-A KUBE-SVC-RL3JAE4GN7VOGDGP -m comment --comment "default/httpd-svc:" -m statistic --mode random --probability 0.33333333349 -j KUBE-SEP-TEXJ5FRT6GSZ3TBS
+#1/3概率转发到 KUBE-SEP-MKVKRXXYH7GSXE6O
+-A KUBE-SVC-RL3JAE4GN7VOGDGP -m comment --comment "default/httpd-svc:" -m statistic --mode random --probability 0.50000000000 -j KUBE-SEP-MKVKRXXYH7GSXE6O
+#1/3概率转发到 KUBE-SEP-ZIZBJ3RYTU5VVQLX
+-A KUBE-SVC-RL3JAE4GN7VOGDGP -m comment --comment "default/httpd-svc:" -j KUBE-SEP-ZIZBJ3RYTU5VVQLX
+
+-A KUBE-SEP-TEXJ5FRT6GSZ3TBS -s 10.244.2.137/32 -m comment --comment "default/httpd-svc:" -j KUBE-MARK-MASQ
+-A KUBE-SEP-TEXJ5FRT6GSZ3TBS -p tcp -m comment --comment "default/httpd-svc:" -m tcp -j DNAT --to-destination 10.244.2.137:80
+-A KUBE-SEP-MKVKRXXYH7GSXE6O -s 10.244.2.138/32 -m comment --comment "default/httpd-svc:" -j KUBE-MARK-MASQ
+-A KUBE-SEP-MKVKRXXYH7GSXE6O -p tcp -m comment --comment "default/httpd-svc:" -m tcp -j DNAT --to-destination 10.244.2.138:80
+-A KUBE-SEP-ZIZBJ3RYTU5VVQLX -s 10.244.2.139/32 -m comment --comment "default/httpd-svc:" -j KUBE-MARK-MASQ
+-A KUBE-SEP-ZIZBJ3RYTU5VVQLX -p tcp -m comment --comment "default/httpd-svc:" -m tcp -j DNAT --to-destination 10.244.2.139:80
 ```
 
-![image-20231228230928932](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282309064.png)
 
-![image-20231228231144763](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202312282311862.png)
+
+### 跨namespace 访问 httpd2-svc 失败
+
+httpd2.yaml
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  httpd2
+  namespace: kube-public
+spec:
+  selector:
+    matchLabels:
+      app: httpd2
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: httpd2
+    spec:
+      containers:
+      - name:  httpd2
+        image:  httpd      
+        ports:
+        - containerPort:  80
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: httpd2-svc
+  namespace: kube-public
+spec:
+  selector:
+    app: httpd2
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 80
+```
+
+第一次试验的时候发现在busybox容器中使用```wget httpd2-svc.kube-public:8080```访问报错```wget: bad address 'httpd-svc.kube-public:8080'```
+
+后面试验成功了，怀疑是当时Pod中的容器还没有启动。现在成功了，可以看到三个Pod中的容器都已经启动
+
+![image-20240103224154127](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202401032242200.png)
+
+![image-20240103224233015](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202401032242109.png)
+
+### EXTERNAL-IP
+
+P56 页上说 EXTERNAL-IP 为 nodes，但在v1.18版本上发现这个值为none
+
+![image-20240103230206035](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202401032302177.png)
+
+![image-20240103230339579](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202401032303661.png)
+
+### NodePort 底层实现
+
+```shell
+-A KUBE-NODEPORTS -p tcp -m comment --comment "default/httpd-svc:" -m tcp --dport 31544 -j KUBE-MARK-MASQ
+-A KUBE-NODEPORTS -p tcp -m comment --comment "default/httpd-svc:" -m tcp --dport 31544 -j KUBE-SVC-RL3JAE4GN7VOGDGP
+
+-A KUBE-SVC-RL3JAE4GN7VOGDGP -m comment --comment "default/httpd-svc:" -m statistic --mode random --probability 0.33333333349 -j KUBE-SEP-NGX2GKBZ734ZVF5H
+-A KUBE-SVC-RL3JAE4GN7VOGDGP -m comment --comment "default/httpd-svc:" -m statistic --mode random --probability 0.50000000000 -j KUBE-SEP-Z7LSLPUABQUNUITA
+-A KUBE-SVC-RL3JAE4GN7VOGDGP -m comment --comment "default/httpd-svc:" -j KUBE-SEP-WUZQJLKL3EGKLRUO
+
+-A KUBE-SEP-NGX2GKBZ734ZVF5H -s 10.244.2.151/32 -m comment --comment "default/httpd-svc:" -j KUBE-MARK-MASQ
+-A KUBE-SEP-NGX2GKBZ734ZVF5H -p tcp -m comment --comment "default/httpd-svc:" -m tcp -j DNAT --to-destination 10.244.2.151:80
+-A KUBE-SEP-Z7LSLPUABQUNUITA -s 10.244.2.152/32 -m comment --comment "default/httpd-svc:" -j KUBE-MARK-MASQ
+-A KUBE-SEP-Z7LSLPUABQUNUITA -p tcp -m comment --comment "default/httpd-svc:" -m tcp -j DNAT --to-destination 10.244.2.152:80
+-A KUBE-SEP-WUZQJLKL3EGKLRUO -s 10.244.3.34/32 -m comment --comment "default/httpd-svc:" -j KUBE-MARK-MASQ
+-A KUBE-SEP-WUZQJLKL3EGKLRUO -p tcp -m comment --comment "default/httpd-svc:" -m tcp -j DNAT --to-destination 10.244.3.34:80
+
+```
+
