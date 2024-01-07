@@ -305,3 +305,221 @@ P56 页上说 EXTERNAL-IP 为 nodes，但在v1.18版本上发现这个值为none
 
 ```
 
+
+
+## 第8章 Health Check
+
+### Health Check 在 Scale Up 中的应用
+
+在 P70 页举例的时候，并未说明应用的判断逻辑中Check Database 这部分应该怎么部署，因此这个例子很难再本地调的通
+
+![image-20240107225323049](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202401072253110.png)
+
+![image-20240107225435289](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202401072254397.png)
+
+可以自己先部署2个副本的redis，然后通过flask访问redis，falsk打包成新的镜像beck123/myweb，在k8s中部署，目录结构是：
+
+![image-20240107225720298](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202401072257372.png)
+
+**app.py**
+
+```python
+import time
+import random
+import redis
+from flask import Flask
+
+app = Flask(__name__)
+
+
+
+
+@app.route('/healthy')
+def check_redis():
+    try:
+        hosts= ["192.168.1.125", "192.168.1.155"]
+        host = random.choice(hosts)
+        r = redis.Redis(host=host, port=30001)
+        result = r.ping()
+        print(f"host: {host}, result: {result}")
+
+        if result == True:
+            return "成功连接到redis", 200
+        else:
+            return "无法连接到Redis", 400
+    except Exception as e:
+        return f"连接错误: {str(e)}", 503
+
+
+app.run()
+```
+
+**docker-compose.yaml**
+
+```yaml
+# yaml 配置
+version: '3'
+services:
+  web:
+    build: .
+    ports:
+     - "5000:5000"
+    image: beck123/myweb
+```
+
+**Dockerfile**
+
+```shell
+FROM python:3.7-alpine
+WORKDIR /code
+ENV FLASK_APP app.py
+ENV FLASK_RUN_HOST 0.0.0.0
+RUN apk add gcc musl-dev linux-headers
+COPY requirements.txt requirements.txt
+RUN pip install -r requirements.txt
+COPY . .
+CMD ["flask", "run"]
+```
+
+**myweb.yaml**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  myweb
+spec:
+  selector:
+    matchLabels:
+      app: myweb
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: myweb
+    spec:
+      containers:
+      - name:  myweb
+        image:  beck123/myweb  
+        readinessProbe:
+          httpGet:
+            scheme: HTTP 
+            path: /healthy 
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 5 
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myweb-svc
+spec:
+  selector:
+    app: myweb
+  ports:
+  - protocol: TCP
+    port: 5000
+    targetPort: 5000
+```
+
+**redis.yaml**
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-conf
+data:
+  redis.conf: |
+        bind 0.0.0.0
+        port 6379
+        #requirepass 111111 #设置认证密码
+        appendonly yes
+        cluster-config-file nodes-6379.conf
+        pidfile /redis/log/redis-6379.pid
+        cluster-config-file /redis/conf/redis.conf
+        dir /redis/data/
+        logfile /redis/log/redis-6379.log
+        cluster-node-timeout 5000
+        protected-mode no
+
+
+--- 
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+spec:
+  replicas: 2
+  serviceName: redis
+  selector:
+    matchLabels:
+      name: redis
+  template:
+    metadata:
+      labels:
+        name: redis
+    spec:
+      initContainers:
+      - name: init-redis
+        image: busybox #初始化容器镜像
+        command: ['sh', '-c', 'mkdir -p /redis/log/;mkdir -p /redis/conf/;mkdir -p /redis/data/']
+        volumeMounts:
+        - name: data
+          mountPath: /redis/
+      containers:
+      - name: redis
+        image: redis
+        imagePullPolicy: IfNotPresent
+        command:
+        - sh
+        - -c
+        - "exec redis-server /redis/conf/redis.conf"
+        ports:
+        - containerPort: 6379
+          name: redis
+          protocol: TCP
+        volumeMounts:
+        - name: redis-config
+          mountPath: /redis/conf/
+        - name: data
+          mountPath: /redis/
+      volumes:
+      - name: redis-config
+        configMap:
+          name: redis-conf
+      - name: data
+        hostPath:
+          path: /app/ #挂载宿主机目录
+      
+
+--- 
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    name: redis
+  name: redis
+spec:
+  type: NodePort
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: 6379
+    nodePort: 30001
+  selector:
+    name: redis
+```
+
+**requirements.txt**
+
+```shell
+flask
+redis
+```
+
+部署成功之后，可以从2个myweb的Pod 日志中查看到 Readiness 探测的执行情况
+
+![image-20240107230731581](https://becktuchuang.oss-cn-beijing.aliyuncs.com/img/202401072307680.png)
+
